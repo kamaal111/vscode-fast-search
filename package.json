@@ -1,0 +1,125 @@
+{
+  "name": "vscode-fast-search",
+  "publisher": "kamaal",
+  "displayName": "Fast Search",
+  "description": "Low-latency filename and full-text search backed by a persistent local Rust engine.",
+  "version": "0.1.0",
+  "packageManager": "pnpm@12.4.1",
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": "26.8.2",
+      "onFail": "error"
+    }
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=26.8.2",
+    "vscode": "^1.137.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onCommand:fastSearch.openFile",
+    "onCommand:fastSearch.findInFiles",
+    "onCommand:fastSearch.rebuildIndex",
+    "onCommand:fastSearch.showDiagnostics",
+    "onView:fastSearch.searchView"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "fastSearch.openFile",
+        "title": "Fast Search: Open File"
+      },
+      {
+        "command": "fastSearch.findInFiles",
+        "title": "Fast Search: Find in Files"
+      },
+      {
+        "command": "fastSearch.rebuildIndex",
+        "title": "Fast Search: Rebuild Index"
+      },
+      {
+        "command": "fastSearch.showDiagnostics",
+        "title": "Fast Search: Show Diagnostics"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "fastSearch",
+          "title": "Fast Search",
+          "icon": "media/search.svg"
+        }
+      ]
+    },
+    "views": {
+      "fastSearch": [
+        {
+          "id": "fastSearch.searchView",
+          "name": "Search",
+          "type": "webview"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Fast Search",
+      "properties": {
+        "fastSearch.filePicker.maxResults": {
+          "type": "integer",
+          "default": 100,
+          "minimum": 1,
+          "maximum": 1000,
+          "description": "Maximum filename matches displayed."
+        },
+        "fastSearch.filePicker.preserveInput": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": null,
+          "description": "Preserve filename input. When unset, inherits search.quickAccess.preserveInput."
+        },
+        "fastSearch.logging.level": {
+          "type": "string",
+          "enum": [
+            "error",
+            "warn",
+            "info",
+            "debug"
+          ],
+          "default": "warn"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "cargo build --manifest-path native/Cargo.toml --release -p fast-search-engine && mkdir -p bin && cp native/target/release/fast-search-engine bin/fast-search-engine && node scripts/build-extension.mjs",
+    "build:extension": "node scripts/build-extension.mjs",
+    "build:native": "cargo build --manifest-path native/Cargo.toml --release -p fast-search-engine && mkdir -p bin && cp native/target/release/fast-search-engine bin/fast-search-engine",
+    "build:universal": "./scripts/build-universal.sh",
+    "typecheck": "tsc --noEmit",
+    "test": "cargo test --manifest-path native/Cargo.toml -p fast-search-engine --test engine_protocol && vitest run && cargo test --manifest-path native/Cargo.toml --workspace --lib",
+    "test:integration": "cargo test --manifest-path native/Cargo.toml -p fast-search-engine --test engine_protocol",
+    "test:extension": "node scripts/build-extension.mjs && tsc --outDir dist-test && node dist-test/test/integration/run.js",
+    "test:unit": "vitest run && cargo test --manifest-path native/Cargo.toml --workspace --lib",
+    "lint:native": "cargo clippy --manifest-path native/Cargo.toml --workspace --all-targets -- -D warnings",
+    "format:check": "prettier --check . && cargo fmt --manifest-path native/Cargo.toml --all -- --check",
+    "benchmark": "cargo bench --manifest-path native/Cargo.toml -p fast-search-core",
+    "licenses": "./scripts/check-licenses.sh",
+    "package": "./scripts/check-licenses.sh && ./scripts/build-universal.sh && vsce package --no-dependencies --allow-missing-repository"
+  },
+  "devDependencies": {
+    "@types/node": "26.5.1",
+    "@types/vscode": "1.137.0",
+    "@vscode/test-electron": "3.1.0",
+    "@vscode/vsce": "3.9.2",
+    "esbuild": "0.28.2",
+    "prettier": "3.9.6",
+    "typescript": "7.0.2",
+    "vitest": "5.0.0"
+  }
+}

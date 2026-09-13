@@ -1,0 +1,8 @@
+node_modules/
+dist/
+bin/
+native/target/
+*.vsix
+THIRD_PARTY_NOTICES.generated.md
+.vscode-test
+dist-test

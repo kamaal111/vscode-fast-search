@@ -1,0 +1,29 @@
+[package]
+name = "fast-search-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+fast-search-index = { path = "../fast-search-index" }
+fast-search-protocol = { path = "../fast-search-protocol" }
+encoding_rs.workspace = true
+globset.workspace = true
+grep-matcher.workspace = true
+grep-regex.workspace = true
+grep-searcher.workspace = true
+nucleo-matcher.workspace = true
+rayon.workspace = true
+
+[dev-dependencies]
+libc = "0.2.189"
+tempfile.workspace = true
+
+[[bench]]
+name = "million_paths"
+harness = false
+
+[[bench]]
+name = "content_corpus"
+harness = false

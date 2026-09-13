@@ -1,0 +1,30 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  verify:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/setup@v2
+        with:
+          cache: true
+          install: false
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          {
+            targets: "aarch64-apple-darwin,x86_64-apple-darwin",
+            components: "rustfmt,clippy",
+          }
+      - uses: taiki-e/install-action@v2
+        with: { tool: "cargo-deny@0.20.2,cargo-about@0.9.2" }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run test:integration
+      - run: pnpm run build:native
+      - run: pnpm run test:extension
+      - run: pnpm run test:unit
+      - run: pnpm run typecheck
+      - run: pnpm run format:check
+      - run: pnpm run lint:native
+      - run: pnpm run benchmark
+      - run: pnpm run licenses
+      - run: pnpm run package

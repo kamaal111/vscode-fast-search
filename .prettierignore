@@ -1,0 +1,10 @@
+.vscode-test/
+bin/
+dist/
+dist-test/
+native/target/
+node_modules/
+*.vsix
+about.hbs
+pnpm-lock.yaml
+THIRD_PARTY_NOTICES.md
