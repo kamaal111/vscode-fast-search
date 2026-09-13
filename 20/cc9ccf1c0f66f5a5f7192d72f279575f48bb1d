@@ -1,0 +1,166 @@
+vitest.config.mts
+  s_d866987e91c89f::t_d997491235b41a 1-7
+pnpm-workspace.yaml
+  h_66e824d23aae73 1-4
+native/crates/fast-search-engine/tests/engine_protocol.rs
+  s_d866987e91c89f::t_18e4d0b48ce87f 1,113-117
+  s_d866987e91c89f::t_5be8e7bbe603a4 2-112,128-273
+  s_d866987e91c89f::t_ef641d7185d908 118-127
+test/unit/model.test.ts
+  h_66e824d23aae73 1-75
+about.toml
+  h_66e824d23aae73 1-2
+docs/architecture.md
+  h_66e824d23aae73 1-33
+native/crates/fast-search-core/src/lib.rs
+  s_d866987e91c89f::t_bc2d1aa0f7bd84 76-82,103-104,106-116,118-127,129,146-174,176-180,182-201
+  s_d866987e91c89f::t_efc588a03bd388 17
+  s_d866987e91c89f::t_944cc930bd734c 181
+  s_d866987e91c89f::t_33e67ea172a547 1-2,4-10,12-16,18-19,21-75,83-102,105,117,128,130-145,202-572,576-596,614-615
+  s_d866987e91c89f::t_18e4d0b48ce87f 3,11,20,573-574
+  s_d866987e91c89f::t_3b04bbbf3b9481 612
+  s_d866987e91c89f::t_a5f58b9d9f8163 175
+  s_d866987e91c89f::t_54000dc2f01067 575,597-611,613
+test/fixtures/workspace/.gitignore
+  h_66e824d23aae73 1
+native/crates/fast-search-protocol/src/lib.rs
+  s_d866987e91c89f::t_9f9769d972a569 1-229
+THIRD_PARTY_NOTICES.md
+  s_d866987e91c89f::t_83aa3a02f5ee4b 1-1401
+tsconfig.json
+  s_d866987e91c89f::t_b94a697a1f1c47 1-15
+native/crates/fast-search-protocol/Cargo.toml
+  s_d866987e91c89f::t_a4300ff63f64b9 1-9
+src/extension/activate.ts
+  s_d866987e91c89f::t_4a3f4a1be7041f 25-26
+  s_d866987e91c89f::t_460eb2109cf2f8 1-24,27-131
+native/crates/fast-search-engine/src/main.rs
+  s_d866987e91c89f::t_1c29cb7c2e6a1a 344-347
+  s_d866987e91c89f::t_9f9769d972a569 1-2,4-7,9-343,348-366
+  s_d866987e91c89f::t_18e4d0b48ce87f 3,8
+about.hbs
+  h_66e824d23aae73 1-29
+native/crates/fast-search-index/src/lib.rs
+  s_d866987e91c89f::t_18e4d0b48ce87f 3
+  s_d866987e91c89f::t_ee23fc68a350e8 41-44,47-58
+  s_d866987e91c89f::t_e8ffa8dd488dd1 323-329,366-369
+  s_d866987e91c89f::t_f0507b518e18c9 407,410
+  s_d866987e91c89f::t_9f9769d972a569 1-2,4-40,45-46,59-322,330-365,370-406,408-409,411-426
+native/crates/fast-search-core/benches/content_corpus.rs
+  s_d866987e91c89f::t_786d9b5bd7cfdb 1,3-126
+  s_d866987e91c89f::t_18e4d0b48ce87f 2
+test/fixtures/workspace/README.md
+  h_66e824d23aae73 1-3
+test/integration/suite/index.ts
+  s_d866987e91c89f::t_9b54d09cd82baa 1-15
+native/crates/fast-search-core/benches/million_paths.rs
+  s_d866987e91c89f::t_18e4d0b48ce87f 1-59
+test/fixtures/workspace/src/Result.swift
+  h_66e824d23aae73 1-3
+package.json
+  s_d866987e91c89f::t_697b9b463abece 7,17-18,116-117,119-123
+  s_d866987e91c89f::t_b7c82263d8e854 8-11,13-14
+  s_d866987e91c89f::t_0e27d85ec34a68 1-6,15-16,19-99,101-104,106,108-112,114-115,118,124-125
+  h_66e824d23aae73 12
+  s_d866987e91c89f::t_583aba0164d0ed 100,105,107,113
+deny.toml
+  h_66e824d23aae73 1-6
+src/engine/protocol.ts
+  s_d866987e91c89f::t_a76582ab5e0c5f 1-7,9,11-130,134-224
+  s_d866987e91c89f::t_12494beaeadf17 131-133
+  s_d866987e91c89f::t_9f9769d972a569 8,10
+media/search.svg
+  h_66e824d23aae73 1
+.gitignore
+  h_66e824d23aae73 1-8
+scripts/build-universal.sh
+  h_66e824d23aae73 1-7
+pnpm-lock.yaml
+  s_d866987e91c89f::t_ca701e7e8cbc73 1-3806
+LICENSE
+  h_66e824d23aae73 1-21
+src/filePicker/filePicker.ts
+  s_d866987e91c89f::t_4a12b0068a6020 1-52,54-150
+  s_d866987e91c89f::t_3b04bbbf3b9481 53
+src/engine/processClient.ts
+  s_d866987e91c89f::t_9f9769d972a569 1-239
+src/configuration/configuration.ts
+  s_d866987e91c89f::t_9f9769d972a569 1-78
+media/search.css
+  h_66e824d23aae73 1-84
+README.md
+  s_d866987e91c89f::t_2dad093f607e69 33
+  s_d866987e91c89f::t_1823725fa46682 1-32,34-49,51,53-78
+  s_d866987e91c89f::t_b94a697a1f1c47 50,52
+native/crates/fast-search-index/Cargo.toml
+  s_d866987e91c89f::t_ee23fc68a350e8 1-11
+  s_d866987e91c89f::t_a4300ff63f64b9 12
+scripts/check-licenses.sh
+  s_d866987e91c89f::t_da089d32c4c986 1-17
+test/unit/protocol.test.ts
+  s_a7d14b22d6a96f::t_9741f7fd12eb2f 1-21
+src/engine/client.ts
+  s_a7d14b22d6a96f::t_5545f75779b2f9 1-47
+scripts/build-extension.mjs
+  s_d866987e91c89f::t_b94a697a1f1c47 1-11
+.github/workflows/ci.yml
+  s_d866987e91c89f::t_72ba1c1b70c9c8 28
+  s_d866987e91c89f::t_638a7a6b056bfb 1-4,6,12-27,29-30
+  s_d866987e91c89f::t_b94a697a1f1c47 5,7-11
+media/search.js
+  s_d866987e91c89f::t_8b4f11affa3e08 1-143
+native/crates/fast-search-engine/Cargo.toml
+  h_66e824d23aae73 1-16
+native/Cargo.lock
+  h_66e824d23aae73 1-711
+src/searchView/provider.ts
+  s_d866987e91c89f::t_ac1b2f61ec2c59 1-240
+native/Cargo.toml
+  s_d866987e91c89f::t_faf99e44059473 8,12-13
+  s_d866987e91c89f::t_2fd88db6e55f0a 1-7,9-11,14-17,24-25,30-33
+  s_d866987e91c89f::t_a4300ff63f64b9 18-23,26-29
+.prettierignore
+  h_66e824d23aae73 1-10
+.vscodeignore
+  s_d866987e91c89f::t_c5b448925aef50 1-6,8-18
+  s_d866987e91c89f::t_cfa403120d0444 7
+native/crates/fast-search-core/Cargo.toml
+  h_66e824d23aae73 1-16,24-29
+  s_d866987e91c89f::t_a4300ff63f64b9 20
+  s_d866987e91c89f::t_80441de47bdba1 17-19
+  s_d866987e91c89f::t_415d9bbd22e5d1 21-23
+test/integration/run.ts
+  s_d866987e91c89f::t_029f0a3cb352e0 1-10,12-17
+  s_d866987e91c89f::t_ae9f9257b5aa36 11
+src/searchView/model.ts
+  s_d866987e91c89f::t_03d1697cf1e9a7 1-164
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "20cc9ccf1c0f66f5a5f7192d72f279575f48bb1d",
+  "prompts": {},
+  "humans": {
+    "h_66e824d23aae73": {
+      "author": "Kamaal Farah <kamaal.f1@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_a7d14b22d6a96f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0973c-7722-78a2-87cb-d7886898b9df",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "Kamaal Farah <kamaal.f1@gmail.com>"
+    },
+    "s_d866987e91c89f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a09761-ddea-7060-9e08-8666656f9314",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "Kamaal Farah <kamaal.f1@gmail.com>"
+    }
+  }
+}
