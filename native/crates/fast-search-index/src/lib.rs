@@ -13,6 +13,8 @@ use std::{
 pub struct RootSpec {
     pub id: String,
     pub path: PathBuf,
+    #[serde(default)]
+    pub name: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
@@ -65,6 +67,7 @@ const FILE_URI_ENCODE_SET: &AsciiSet = &CONTROLS
 #[derive(Debug, Clone, Default)]
 pub struct Snapshot {
     pub files: Arc<Vec<IndexedPath>>,
+    pub roots: Arc<Vec<RootSpec>>,
     digit_postings: Arc<Vec<Vec<u32>>>,
     pub generation: u64,
 }
@@ -94,9 +97,15 @@ impl Snapshot {
         }
         Self {
             files: Arc::new(files),
+            roots: Arc::default(),
             digit_postings: Arc::new(postings),
             generation,
         }
+    }
+
+    fn with_roots(mut self, roots: Arc<Vec<RootSpec>>) -> Self {
+        self.roots = roots;
+        self
     }
 
     pub fn digit_candidates(&self, query: &str) -> Option<&[u32]> {
@@ -172,6 +181,7 @@ impl WorkspaceIndex {
             state.last_error = None;
             (generation, expose_partial)
         };
+        let snapshot_roots = Arc::new(roots.clone());
         let mut files = Vec::new();
         for root in &roots {
             let root_files = scan(std::slice::from_ref(root), &options);
@@ -182,7 +192,8 @@ impl WorkspaceIndex {
                 self.state
                     .write()
                     .map_err(|_| "index lock poisoned")?
-                    .snapshot = Snapshot::new(files.clone(), generation);
+                    .snapshot = Snapshot::new(files.clone(), generation)
+                    .with_roots(Arc::clone(&snapshot_roots));
             }
         }
         files.sort_by(|a, b| {
@@ -191,7 +202,7 @@ impl WorkspaceIndex {
                 .then_with(|| a.relative_path.cmp(&b.relative_path))
         });
         generation += 1;
-        let snapshot = Snapshot::new(files, generation);
+        let snapshot = Snapshot::new(files, generation).with_roots(snapshot_roots);
         let mut state = self.state.write().map_err(|_| "index lock poisoned")?;
         state.snapshot = snapshot.clone();
         state.ready = true;
@@ -249,7 +260,8 @@ impl WorkspaceIndex {
                 .cmp(&b.root_id)
                 .then_with(|| a.relative_path.cmp(&b.relative_path))
         });
-        let snapshot = Snapshot::new(files, old_snapshot.generation + 1);
+        let snapshot = Snapshot::new(files, old_snapshot.generation + 1)
+            .with_roots(Arc::clone(&old_snapshot.roots));
         self.state
             .write()
             .map_err(|_| "index lock poisoned")?
@@ -485,5 +497,48 @@ mod tests {
     #[test]
     fn bag_rejects_missing_repeated_characters() {
         assert!(!bag_contains(character_bag("file9"), character_bag("9999")));
+    }
+
+    #[test]
+    fn snapshots_keep_all_root_names_through_partial_indexing_refresh_and_replacement() {
+        let workspace = tempfile::tempdir().expect("workspace");
+        let empty = tempfile::tempdir().expect("empty workspace");
+        std::fs::write(workspace.path().join("app.txt"), "fixture").expect("file");
+        let roots = vec![
+            super::RootSpec {
+                id: "one".into(),
+                path: workspace.path().to_path_buf(),
+                name: Some("backend".into()),
+            },
+            super::RootSpec {
+                id: "two".into(),
+                path: empty.path().to_path_buf(),
+                name: Some("empty".into()),
+            },
+        ];
+        let index = super::WorkspaceIndex::default();
+        let mut observed = Vec::new();
+        let initial = index
+            .configure_with_progress(roots.clone(), super::IndexOptions::default(), |_, _| {
+                observed.push(index.searchable_snapshot());
+            })
+            .expect("initial index");
+        assert_eq!(*observed[1].roots, roots);
+        assert_eq!(*initial.roots, roots);
+        assert_eq!(*index.rebuild().expect("rebuild").roots, roots);
+        let added = workspace.path().join("new.txt");
+        std::fs::write(&added, "fixture").expect("new file");
+        let refreshed = index.apply_filesystem_changes(&[added]).expect("refresh");
+        assert_eq!(*refreshed.roots, roots);
+        assert_eq!(refreshed.files.len(), 2);
+        let mut renamed = roots.clone();
+        renamed[0].name = Some("renamed".into());
+        let replacement = index
+            .configure_with_progress(renamed.clone(), super::IndexOptions::default(), |_, _| {
+                assert_eq!(*index.searchable_snapshot().roots, roots);
+            })
+            .expect("replacement index");
+        assert_eq!(*replacement.roots, renamed);
+        assert_eq!(*initial.roots, roots);
     }
 }

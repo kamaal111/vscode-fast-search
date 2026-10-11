@@ -80,6 +80,7 @@ fn main() {
                     .map(|root| RootSpec {
                         id: root.id,
                         path: PathBuf::from(root.path),
+                        name: root.name,
                     })
                     .collect();
                 let prepared_watcher = prepare_watcher(&specs);

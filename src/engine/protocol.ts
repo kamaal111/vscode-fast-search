@@ -1,6 +1,6 @@
 export const protocolVersion = 1;
 
-export type WorkspaceRoot = { id: string; path: string };
+export type WorkspaceRoot = { id: string; path: string; name?: string };
 export type ExclusionRule = string | { pattern: string; when: string };
 export type SearchConfiguration = {
   excludes: string[];

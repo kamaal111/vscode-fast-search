@@ -11,3 +11,6 @@ globset.workspace = true
 ignore.workspace = true
 percent-encoding.workspace = true
 serde = { version = "1.0.229", features = ["derive", "rc"] }
+
+[dev-dependencies]
+tempfile.workspace = true

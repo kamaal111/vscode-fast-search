@@ -22,7 +22,7 @@ Build or download the VSIX, then run **Extensions: Install from VSIX…**. To bu
 ]
 ```
 
-The filename picker fuzzy-matches the normalized full relative path and ranks filename prefixes, short paths, and files near the active editor more highly. Empty input includes open editors and recent choices; selecting previews, Enter pins, and the split button opens beside. The search view accepts comma-separated include/exclude globs, retains workspace-local query history, and renders large result sets in bounded windows. Text search supports literal and regular-expression modes, smart-case, explicit case sensitivity, whole words, multiline expressions, LF/CRLF, UTF-8 BOMs, configured `files.encoding`, binary rejection, and dirty or untitled editor overlays. Search always honors resource-scoped `files.exclude` and `search.exclude`, including conditional sibling rules; `search.exclude` overrides duplicate patterns from `files.exclude`. Ignore files follow `search.useIgnoreFiles` (enabled by default), `search.useGlobalIgnoreFiles`, and `search.useParentIgnoreFiles` (both disabled by default). Global and parent ignores require `search.useIgnoreFiles`. Change these standard VS Code settings to include ignored files; the view's explicit exclusions remain additional filters.
+The filename picker fuzzy-matches the normalized full relative path and ranks filename prefixes, short paths, and files near the active editor more highly. Empty input includes open editors and recent choices; selecting previews, Enter pins, and the split button opens beside. The search view accepts comma-separated folders or globs in Files to include, and glob patterns in Files to exclude, retains workspace-local query history, and renders large result sets in bounded windows. Text search supports literal and regular-expression modes, smart-case, explicit case sensitivity, whole words, multiline expressions, LF/CRLF, UTF-8 BOMs, configured `files.encoding`, binary rejection, and dirty or untitled editor overlays. Search always honors resource-scoped `files.exclude` and `search.exclude`, including conditional sibling rules; `search.exclude` overrides duplicate patterns from `files.exclude`. Ignore files follow `search.useIgnoreFiles` (enabled by default), `search.useGlobalIgnoreFiles`, and `search.useParentIgnoreFiles` (both disabled by default). Global and parent ignores require `search.useIgnoreFiles`. Change these standard VS Code settings to include ignored files; the view's explicit exclusions remain additional filters.
 
 Search results follow the native file-list layout. Click a file heading to collapse
 or expand its matches. Hover or focus a row to reveal its dismiss action; dismiss
@@ -60,6 +60,22 @@ VS Code composition root
 ```
 
 `src/extension` only composes lifecycle. `src/filePicker` and `src/searchView` own presentation and never spawn processes or import one another. `src/configuration` translates VS Code settings. `src/engine` owns process lifetime, validation, request routing, stale IDs, restart, and shutdown. Rust crates proceed inward from protocol DTOs to index snapshots to search algorithms; only the executable coordinates requests and transport. See `docs/architecture.md`.
+
+### Search selected folders
+
+Enter `src` in **Files to include** to search files beneath folders named
+`src` at any depth. Enter `src, docs` to search both folders. Folder matches
+are recursive and respect path boundaries: `src` does not select `src-old`.
+A trailing slash, such as `src/`, selects folder contents only; without it,
+a file named `src` can also match. Globs such as `**/*.swift` remain supported.
+
+In a single-root workspace, `./src` selects only the top-level `src` folder.
+In a multi-root workspace, `./backend` selects the root displayed as `backend`,
+and `./backend/src` selects its top-level `src` folder. Use the workspace's
+configured display name, which can differ from the folder name on disk.
+Duplicate display names select every matching root; unknown names return no
+results. Paths use forward slashes. Filters run before file contents are read;
+existing ignore settings and exclusions still apply.
 
 ## Development
 
