@@ -1,0 +1,43 @@
+test/unit/provider.test.ts
+  s_8158d4978fa29e::t_b60c5076b10228 1,100-103,118-122,400-402,409-410,412-414,423-517
+  s_8158d4978fa29e::t_2e0b4a6a018ba3 105,107-109,111-114,355-357,360-368,382-387,399,403,408,415
+  s_8158d4978fa29e::t_2c5eaab303aefe 110,115-117,126,168,203,347-354,358-359,369-381,388-398,404-407,416-422
+  s_8158d4978fa29e::t_d6b33551a911eb 411
+src/searchView/provider.ts
+  s_8158d4978fa29e::t_2e0b4a6a018ba3 201-221
+  s_8158d4978fa29e::t_118f8ff6e28888 13-19,50-51,53-57,80,146-147,198-200,222-225,235
+media/search.js
+  s_8158d4978fa29e::t_2e0b4a6a018ba3 153-186,192
+  s_8158d4978fa29e::t_61d685e1a2f423 138-152
+test/unit/searchView.test.ts
+  s_8158d4978fa29e::t_2c5eaab303aefe 71,433-440,452-459,489-519,527-541
+  s_8158d4978fa29e::t_2e0b4a6a018ba3 21-25,441-451,460-488,520-526
+test/ui/search.spec.ts
+  s_8158d4978fa29e::t_b60c5076b10228 684
+  s_8158d4978fa29e::t_2e0b4a6a018ba3 669-679,689-701
+  s_8158d4978fa29e::t_c55fc290aca82c 192,194,439,454,466,468,560,625,668,680-683,685-688,702-703
+README.md
+  s_8158d4978fa29e::t_510a5130dc2f98 33-37
+src/searchView/html.ts
+  s_8158d4978fa29e::t_de1b6a9f0a902f 29,43,48-50
+src/searchView/model.ts
+  s_8158d4978fa29e::t_7eefab17456f09 26,91-95
+test/ui/fixtures.ts
+  s_8158d4978fa29e::t_ebe5c26282f9e6 59,71,151
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1186fb86bb503effd620586f5aba2d42fb5f446e",
+  "prompts": {},
+  "sessions": {
+    "s_8158d4978fa29e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12ce3-8950-7ba1-89d9-f69bca13bb76",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Kamaal Farah <kamaal.f1@gmail.com>"
+    }
+  }
+}
