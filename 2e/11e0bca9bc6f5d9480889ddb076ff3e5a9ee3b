@@ -1,0 +1,22 @@
+test/unit/provider.test.ts
+  s_f4ef3a847ed56d::t_124d994e6331ab 221,265-288
+  s_f4ef3a847ed56d::t_00c01122a8a5b1 70-71,289-294
+src/searchView/provider.ts
+  s_f4ef3a847ed56d::t_1510c2afd957d5 250-252
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2e11e0bca9bc6f5d9480889ddb076ff3e5a9ee3b",
+  "prompts": {},
+  "sessions": {
+    "s_f4ef3a847ed56d": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12cab-05e1-7170-8bfa-015d985762a4",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Kamaal Farah <kamaal.f1@gmail.com>"
+    }
+  }
+}
