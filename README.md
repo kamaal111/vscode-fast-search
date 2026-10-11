@@ -32,6 +32,8 @@ Settings:
 
 The first scan is cold and proportional to the workspace tree. Roots become searchable as they finish, and watcher events captured during the scan are replayed before readiness. Warm filename queries operate on an in-memory snapshot; text search still reads candidate contents in parallel and streams bounded batches. The release targets are native filename-search p95 ≤25 ms, command-to-visible p95 ≤50 ms, first partial results ≤250 ms, cancellation acknowledgement ≤50 ms, and ≤300 MiB RSS for one million average paths. On the development arm64 Mac, the checked benchmark currently measures about 9 ms filename p95, 179 MiB peak RSS, an 8 ms first content batch, and about 1 ms cancellation acknowledgement. End-to-end UI timing remains a release-machine measurement, not a universal filesystem claim.
 
+Hosted CI enforces a 40 ms filename-search p95 budget to allow for slower shared runners. Local benchmarks retain the 25 ms release target. Both use five untimed warm-up searches before collecting 40 samples. Set a positive integer `FAST_SEARCH_FILENAME_P95_MS` to override the filename budget, for example `FAST_SEARCH_FILENAME_P95_MS=40 pnpm run benchmark`. Invalid values fail the benchmark; memory, content-search, and cancellation limits remain unchanged.
+
 ## Architecture
 
 ```text

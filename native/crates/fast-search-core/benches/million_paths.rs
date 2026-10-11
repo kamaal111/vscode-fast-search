@@ -2,7 +2,17 @@ use fast_search_core::FileSearcher;
 use fast_search_index::{IndexedPath, Snapshot, character_bag};
 use std::{hint::black_box, path::PathBuf, sync::Arc, time::Instant};
 
+#[path = "support/filename_budget.rs"]
+mod filename_budget;
+
 fn main() {
+    let configured_budget = match std::env::var("FAST_SEARCH_FILENAME_P95_MS") {
+        Ok(value) => Some(value),
+        Err(std::env::VarError::NotPresent) => None,
+        Err(error) => panic!("invalid FAST_SEARCH_FILENAME_P95_MS: {error}"),
+    };
+    let budget = filename_budget::filename_budget(configured_budget.as_deref())
+        .expect("invalid filename-search benchmark budget");
     let root_id: Arc<str> = Arc::from("benchmark");
     let root_path = Arc::new(PathBuf::from("/tmp/fast-search-benchmark"));
     let files: Vec<_> = (0..1_000_000)
@@ -32,6 +42,10 @@ fn main() {
         );
     }
     let searcher = FileSearcher::default();
+    for _ in 0..5 {
+        let token = searcher.cancellation().token();
+        black_box(searcher.search(&snapshot, "src svc 9999", 100, None, token));
+    }
     let mut samples = Vec::with_capacity(40);
     for _ in 0..40 {
         let token = searcher.cancellation().token();
@@ -41,10 +55,10 @@ fn main() {
     }
     samples.sort_unstable();
     let p95 = samples[37];
-    println!("million-path warm filename search p95: {p95:?}");
+    println!("million-path warm filename search p95: {p95:?} (budget: {budget:?})");
     assert!(
-        p95.as_millis() <= 25,
-        "warm filename p95 exceeded 25 ms: {p95:?}"
+        filename_budget::within_budget(p95, budget),
+        "warm filename p95 exceeded {budget:?}: {p95:?}"
     );
 }
 
