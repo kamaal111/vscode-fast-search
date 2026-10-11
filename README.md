@@ -13,7 +13,7 @@ Version 1 supports trusted, local `file:` workspaces on macOS arm64 and x86_64. 
 
 ## Install and shortcuts
 
-Build or download the VSIX, then run **Extensions: Install from VSIX…**. Fast Search deliberately does not replace built-in shortcuts. Add this exact JSON to `keybindings.json` if desired:
+Build or download the VSIX, then run **Extensions: Install from VSIX…**. To build and test your local changes, follow [Install and visually test a local build](#install-and-visually-test-a-local-build). Fast Search deliberately does not replace built-in shortcuts. Add this exact JSON to `keybindings.json` if desired:
 
 ```json
 [
@@ -70,6 +70,37 @@ pnpm run package
 Run one native test with `cargo test --manifest-path native/Cargo.toml -p fast-search-engine --test engine_protocol <name>` and one TypeScript test with `pnpm exec vitest run test/unit/protocol.test.ts`. `scripts/build-universal.sh` builds both Apple targets and combines them with `lipo`; packaging must never substitute a host-only binary.
 
 For an unsupported workspace, open a trusted local folder. If results appear stale, run **Rebuild Index**. If the engine exits unexpectedly, it is restarted once and reinitialized; a second failure stops it. Open **Show Diagnostics** for stderr and state. A release candidate must also be installed into stock VS Code and manually checked for shortcuts, keyboard/ARIA navigation, themes, indexing progress, and crash recovery.
+
+### Install and visually test a local build
+
+Use stock VS Code 1.137.0 or newer on macOS arm64 or x86_64, with the [development prerequisites](#development) installed. Both Rust Apple targets are required because the VSIX includes a universal engine, even when you only test on one architecture.
+
+From the repository root, run:
+
+```sh
+pnpm install --frozen-lockfile
+rustup target add aarch64-apple-darwin x86_64-apple-darwin
+pnpm run package
+```
+
+Packaging checks dependency licenses and the generated third-party notices, builds the Rust engine for both Apple targets, combines them with `lipo`, bundles the extension, and creates `vscode-fast-search-0.1.0.vsix` in the repository root. The filename follows the version in `package.json`. If packaging fails, resolve the reported license or build error before installing; an older VSIX does not contain your latest changes.
+
+1. Open VS Code and press **Cmd+Shift+P** to open the Command Palette.
+2. Run **Extensions: Install from VSIX…** and select the newly generated VSIX from the repository root. Reload VS Code if prompted.
+3. Use **File > Open Folder…** to open `test/fixtures/workspace` from this repository as the workspace root. Trust that folder when prompted. Fast Search requires a trusted local folder; remote workspaces are unsupported.
+4. Run the checks below through the Command Palette. Shortcut remapping is optional; see [Install and shortcuts](#install-and-shortcuts).
+
+#### Visual smoke checks
+
+- Run **Fast Search: Open File** and type `Result`. Expect `src/Result.swift` (the picker shows the filename with its directory). Move the active selection to preview the file, press Enter to pin it, and reopen the picker to try the **Open to the Side** button. Searching `Result:2` and accepting the result should navigate to line 2.
+- Run **Fast Search: Find in Files** and search for `searchable fixture`. Expect a highlighted match on line 2 of `src/Result.swift`; selecting the result should open the matching location. Check the literal/regex, case, whole-word, and include/exclude controls. For example, including `**/*.swift` should retain this match, while excluding `**/*.swift` should remove it.
+- Switch between light and dark themes and check that controls, text, and result highlights remain readable. Use the keyboard to navigate the picker and Tab through the search controls, checking visible focus and result navigation.
+- Run **Fast Search: Rebuild Index**, then repeat the searches. Run **Fast Search: Show Diagnostics** to inspect engine readiness and the indexed-file count. If startup fails or results stay stale, inspect the reported state and stderr there.
+- Open a larger trusted local workspace to observe indexing progress and try searching during the initial scan; the tiny fixture may finish too quickly to show progress. Search its own filenames and contents, since the fixture examples only apply to the fixture folder.
+
+After editing the extension or native engine, rerun `pnpm run package`, install the newly generated VSIX again using **Extensions: Install from VSIX…**, and run **Developer: Reload Window** to load the new code. Rebuilding alone does not update an installed extension.
+
+`pnpm run test:extension` runs automated checks in a separate extension host. It does not install the VSIX into your regular VS Code window or replace these manual visual checks. Release-candidate checks for accessibility and crash recovery still apply.
 
 ## Privacy, licensing, and contributing
 
