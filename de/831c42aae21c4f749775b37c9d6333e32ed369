@@ -73,6 +73,7 @@ src/searchView/html.ts
   s_9dfbe4465794d9::t_d5ff7a7c6432d2 20,22
 README.md
   s_9dfbe4465794d9::t_0d957aa536d8ac 8,27-40,135
+  s_9dfbe4465794d9::t_7011752b167296 147
 scripts/build-extension.mjs
   s_9dfbe4465794d9::t_5ea8767f0f9ad6 7
 test/ui/search.spec.ts
