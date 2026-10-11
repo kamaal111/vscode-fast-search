@@ -37,7 +37,7 @@ export function searchViewHtml({
     </div>
     <datalist id="history"></datalist>
     <label for="include" data-help="include-help">files to include</label>
-    <input id="include" placeholder="e.g. **/*.ts, src/**" data-help="include-help" aria-describedby="include-help">
+    <input id="include" placeholder="e.g. src, docs, **/*.ts" data-help="include-help" aria-describedby="include-help">
     <label for="exclude" data-help="exclude-help">files to exclude</label>
     <input id="exclude" placeholder="e.g. **/node_modules/**" data-help="exclude-help" aria-describedby="exclude-help">
   </form>
@@ -46,7 +46,7 @@ export function searchViewHtml({
   <span class="sr-only" id="word-help">Match complete words rather than parts of words.</span>
   <span class="sr-only" id="regex-help">Interpret the search text as a regular expression.</span>
   <span class="sr-only" id="cancel-help">Stop the current search.</span>
-  <span class="sr-only" id="include-help">Search only files matching these comma-separated glob patterns. Leave empty to search all included files.</span>
+  <span class="sr-only" id="include-help">Search only files matching these comma-separated folders or glob patterns. A folder such as src includes its contents at any depth. Use ./src for a top-level folder in a single-root workspace, or ./backend/src for a folder in the named backend root in a multi-root workspace. Leave empty to search all included files.</span>
   <span class="sr-only" id="exclude-help">Skip files matching these comma-separated glob patterns.</span>
   <div id="status" role="status" aria-live="polite"></div>
   <div id="results" role="tree" aria-label="Search results"></div>

@@ -9,7 +9,7 @@ use fast_search_index::{
 use fast_search_protocol::{
     ActiveEditor, DocumentOverlay, FileMatch, TextMatch, TextSearchOptions,
 };
-use globset::{Glob, GlobSet, GlobSetBuilder};
+use globset::{Glob, GlobBuilder, GlobSet, GlobSetBuilder};
 use grep_matcher::Matcher as GrepMatcher;
 use grep_regex::{RegexMatcher, RegexMatcherBuilder};
 use grep_searcher::{SearcherBuilder, sinks::UTF8};
@@ -320,7 +320,7 @@ impl TextSearcher {
         token: u64,
     ) -> Result<TextSearchSummary, String> {
         let regex = build_regex(query, options)?;
-        let includes = build_globs(&options.includes)?;
+        let includes = IncludeMatcher::new(&options.includes, snapshot)?;
         let excludes = build_globs(&options.excludes)?;
         let overlay_map: HashMap<&str, &DocumentOverlay> = overlays
             .iter()
@@ -376,7 +376,7 @@ impl TextSearcher {
                 return;
             }
             let relative = file.relative_path.as_ref();
-            if includes.as_ref().is_some_and(|set| !set.is_match(relative))
+            if !includes.is_match(file.root_id.as_ref(), relative)
                 || excludes.as_ref().is_some_and(|set| set.is_match(relative))
             {
                 return;
@@ -425,9 +425,7 @@ impl TextSearcher {
                 {
                     break;
                 }
-                if includes
-                    .as_ref()
-                    .is_some_and(|set| !set.is_match(&overlay.uri))
+                if !includes.is_match("untitled", &overlay.uri)
                     || excludes
                         .as_ref()
                         .is_some_and(|set| set.is_match(&overlay.uri))
@@ -481,6 +479,101 @@ fn build_regex(query: &str, options: &TextSearchOptions) -> Result<RegexMatcher,
         .dot_matches_new_line(options.multiline)
         .build(query)
         .map_err(|error| error.to_string())
+}
+
+struct IncludeMatcher {
+    unrestricted: bool,
+    global: GlobSet,
+    by_root: HashMap<String, GlobSet>,
+}
+
+impl IncludeMatcher {
+    fn new(patterns: &[String], snapshot: &Snapshot) -> Result<Self, String> {
+        let mut global = GlobSetBuilder::new();
+        let mut by_root = HashMap::<String, GlobSetBuilder>::new();
+        for pattern in patterns {
+            if let Some(relative) = pattern.strip_prefix("./") {
+                if snapshot.roots.len() > 1 {
+                    let (name, relative) = relative.split_once('/').unwrap_or((relative, ""));
+                    let globs = include_globs(relative, true)?;
+                    for root in snapshot.roots.iter() {
+                        let root_name = root
+                            .name
+                            .as_deref()
+                            .or_else(|| root.path.file_name().and_then(|name| name.to_str()));
+                        if root_name == Some(name) {
+                            let builder = by_root
+                                .entry(root.id.clone())
+                                .or_insert_with(GlobSetBuilder::new);
+                            for glob in &globs {
+                                builder.add(glob.clone());
+                            }
+                        }
+                    }
+                } else {
+                    for glob in include_globs(relative, true)? {
+                        global.add(glob);
+                    }
+                }
+            } else {
+                for glob in include_globs(pattern, false)? {
+                    global.add(glob);
+                }
+            }
+        }
+        Ok(Self {
+            unrestricted: patterns.is_empty(),
+            global: global.build().map_err(|error| error.to_string())?,
+            by_root: by_root
+                .into_iter()
+                .map(|(root, builder)| {
+                    builder
+                        .build()
+                        .map(|set| (root, set))
+                        .map_err(|error| error.to_string())
+                })
+                .collect::<Result<_, _>>()?,
+        })
+    }
+
+    fn is_match(&self, root_id: &str, relative: &str) -> bool {
+        self.unrestricted
+            || self.global.is_match(relative)
+            || self
+                .by_root
+                .get(root_id)
+                .is_some_and(|set| set.is_match(relative))
+    }
+}
+
+fn include_globs(pattern: &str, anchored: bool) -> Result<Vec<Glob>, String> {
+    let directory_only = pattern.ends_with('/');
+    let normalized = pattern.trim_end_matches('/');
+    let normalized = if normalized.is_empty() && anchored {
+        "**".to_owned()
+    } else if !anchored
+        && (!normalized.contains('/') || !normalized.contains(['*', '?', '[', ']', '{', '}']))
+    {
+        format!("**/{normalized}")
+    } else {
+        normalized.to_owned()
+    };
+    let mut globs = Vec::new();
+    if !directory_only {
+        globs.push(
+            GlobBuilder::new(&normalized)
+                .literal_separator(true)
+                .build()
+                .map_err(|error| error.to_string())?,
+        );
+    }
+    globs.push(
+        GlobBuilder::new(&format!("{normalized}/**"))
+            .literal_separator(true)
+            .build()
+            .map_err(|error| error.to_string())?,
+    );
+    Ok(globs)
 }
 
 fn build_globs(patterns: &[String]) -> Result<Option<GlobSet>, String> {
@@ -615,5 +708,151 @@ mod tests {
         let searcher = FileSearcher::default();
         let results = searcher.search(&snapshot, "foo", 2, None, searcher.cancellation().token());
         assert_eq!(results[0].relative_path, "folder/Foo.rs");
+    }
+
+    #[derive(Default)]
+    struct MatchSink(std::sync::Mutex<Vec<fast_search_protocol::TextMatch>>);
+
+    impl super::TextResultSink for MatchSink {
+        fn emit(&self, results: Vec<fast_search_protocol::TextMatch>) {
+            self.0.lock().expect("result lock").extend(results);
+        }
+    }
+
+    fn overlay_snapshot() -> (Snapshot, Vec<fast_search_protocol::DocumentOverlay>) {
+        let paths = [
+            "src",
+            "src/dirty.swift",
+            "packages/src/deep.swift",
+            "src-old/missing.swift",
+        ];
+        let files = paths
+            .iter()
+            .map(|relative| IndexedPath {
+                root_id: Arc::from("one"),
+                root_path: Arc::new(PathBuf::from("/missing-search-fixture")),
+                relative_path: Arc::from(*relative),
+                filename_offset: relative.rfind('/').map_or(0, |value| value + 1),
+                character_bag: character_bag(relative),
+            })
+            .collect::<Vec<_>>();
+        let mut overlays = files[..3]
+            .iter()
+            .map(|file| fast_search_protocol::DocumentOverlay {
+                uri: file.uri(),
+                text: "fixture phrase".into(),
+                encoding: None,
+                untitled: false,
+            })
+            .collect::<Vec<_>>();
+        overlays.push(fast_search_protocol::DocumentOverlay {
+            uri: "untitled:Untitled-1".into(),
+            text: "fixture phrase".into(),
+            encoding: None,
+            untitled: true,
+        });
+        (Snapshot::new(files, 1), overlays)
+    }
+
+    fn assert_overlay_selection(includes: &[&str], excludes: &[&str], expected: &[&str]) {
+        let (snapshot, overlays) = overlay_snapshot();
+        let searcher = super::TextSearcher::default();
+        let sink = MatchSink::default();
+        let options = fast_search_protocol::TextSearchOptions {
+            includes: includes.iter().map(|value| (*value).into()).collect(),
+            excludes: excludes.iter().map(|value| (*value).into()).collect(),
+            max_results: 100,
+            encoding: None,
+            regex: false,
+            case_sensitive: false,
+            smart_case: false,
+            whole_word: false,
+            multiline: false,
+        };
+        let summary = searcher
+            .search(
+                &snapshot,
+                "fixture phrase",
+                &options,
+                &overlays,
+                &sink,
+                searcher.cancellation().token(),
+            )
+            .expect("search succeeds");
+        let results = sink.0.lock().expect("results");
+        let mut uris = results
+            .iter()
+            .map(|result| result.uri.as_str())
+            .collect::<Vec<_>>();
+        uris.sort_unstable();
+        assert_eq!(uris, expected);
+        assert_eq!(summary.result_count, expected.len());
+        assert!(summary.warnings.is_empty());
+    }
+
+    #[test]
+    fn folder_includes_filter_dirty_and_untitled_overlays_before_missing_disk_reads() {
+        assert_overlay_selection(
+            &["src"],
+            &[],
+            &[
+                "file:///missing-search-fixture/packages/src/deep.swift",
+                "file:///missing-search-fixture/src",
+                "file:///missing-search-fixture/src/dirty.swift",
+            ],
+        );
+        assert_overlay_selection(
+            &["src/"],
+            &[],
+            &[
+                "file:///missing-search-fixture/packages/src/deep.swift",
+                "file:///missing-search-fixture/src/dirty.swift",
+            ],
+        );
+        assert_overlay_selection(
+            &["./src"],
+            &[],
+            &[
+                "file:///missing-search-fixture/src",
+                "file:///missing-search-fixture/src/dirty.swift",
+            ],
+        );
+        assert_overlay_selection(
+            &["src"],
+            &["**/deep.swift"],
+            &[
+                "file:///missing-search-fixture/src",
+                "file:///missing-search-fixture/src/dirty.swift",
+            ],
+        );
+        assert_overlay_selection(&["missing"], &[], &[]);
+    }
+
+    #[test]
+    fn invalid_include_patterns_fail_without_emitting_results() {
+        let (snapshot, overlays) = overlay_snapshot();
+        let searcher = super::TextSearcher::default();
+        let sink = MatchSink::default();
+        let options = fast_search_protocol::TextSearchOptions {
+            includes: vec!["[".into()],
+            excludes: vec![],
+            max_results: 100,
+            encoding: None,
+            regex: false,
+            case_sensitive: false,
+            smart_case: false,
+            whole_word: false,
+            multiline: false,
+        };
+        let result = searcher.search(
+            &snapshot,
+            "fixture phrase",
+            &options,
+            &overlays,
+            &sink,
+            searcher.cancellation().token(),
+        );
+        assert!(result.is_err());
+        assert!(sink.0.lock().expect("results").is_empty());
     }
 }

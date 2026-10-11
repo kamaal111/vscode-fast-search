@@ -17,7 +17,11 @@ export function resolveConfiguration(): ResolvedConfiguration {
   const folders = vscode.workspace.workspaceFolders ?? [];
   const roots = folders
     .filter((folder) => folder.uri.scheme === "file")
-    .map((folder) => ({ id: folder.uri.toString(), path: folder.uri.fsPath }));
+    .map((folder) => ({
+      id: folder.uri.toString(),
+      path: folder.uri.fsPath,
+      name: folder.name,
+    }));
   const rootExcludes: Record<string, ExclusionRule[]> = {};
   const useIgnoreFilesByRoot: Record<string, boolean> = {};
   const useGlobalIgnoreFilesByRoot: Record<string, boolean> = {};

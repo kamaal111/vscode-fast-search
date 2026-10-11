@@ -290,3 +290,19 @@ test("dismisses an entire file using its inline action without opening it", asyn
   await expect(page.getByRole("treeitem")).toHaveCount(0);
   await expect(page.getByRole("status")).toHaveText("0 results in 0 files");
 });
+
+test("accepts plain folder filters and explains named-root selection", async ({
+  page,
+  messages,
+}) => {
+  const include = page.getByRole("textbox", { name: "files to include" });
+  await include.fill("src, docs");
+  await expect
+    .poll(() => messages.at(-1))
+    .toEqual({ type: "update", field: "include", value: "src, docs" });
+  await expect(page.getByRole("tooltip")).toContainText("./backend/src");
+  await include.fill("./backend/src");
+  await expect
+    .poll(() => messages.at(-1))
+    .toEqual({ type: "update", field: "include", value: "./backend/src" });
+});

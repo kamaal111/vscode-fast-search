@@ -5,8 +5,14 @@ const settings = vi.hoisted(() => new Map<string, Record<string, unknown>>());
 vi.mock("vscode", () => ({
   workspace: {
     workspaceFolders: [
-      { uri: { scheme: "file", fsPath: "/one", toString: () => "one" } },
-      { uri: { scheme: "file", fsPath: "/two", toString: () => "two" } },
+      {
+        name: "backend",
+        uri: { scheme: "file", fsPath: "/one", toString: () => "one" },
+      },
+      {
+        name: "frontend",
+        uri: { scheme: "file", fsPath: "/two", toString: () => "two" },
+      },
     ],
     getConfiguration: (section: string, uri?: { toString(): string }) => ({
       get: (key: string, fallback: unknown) =>
@@ -63,4 +69,11 @@ it("resolves each workspace folder's ignore settings independently", () => {
   expect(search.useIgnoreFilesByRoot).toEqual({ one: false, two: true });
   expect(search.useGlobalIgnoreFilesByRoot).toEqual({ one: true, two: false });
   expect(search.useParentIgnoreFilesByRoot).toEqual({ one: false, two: true });
+});
+
+it("forwards workspace display names rather than filesystem basenames", () => {
+  expect(resolveConfiguration().roots).toEqual([
+    { id: "one", path: "/one", name: "backend" },
+    { id: "two", path: "/two", name: "frontend" },
+  ]);
 });

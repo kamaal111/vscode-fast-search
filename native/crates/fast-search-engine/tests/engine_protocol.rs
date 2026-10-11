@@ -440,3 +440,235 @@ fn keeps_single_star_exclusions_within_a_path_segment() {
         &["src/nested/app.js"],
     );
 }
+
+fn assert_included_paths(engine: &mut Engine, includes: &[&str], expected: &[(&str, &str)]) {
+    engine.send(json!({"type":"textSearch", "version":1, "requestId":"folders", "query":"fixture phrase", "options":{"includes":includes, "maxResults":100}, "overlays":[]}));
+    let mut results = Vec::new();
+    loop {
+        let response = engine.next();
+        match response["type"].as_str().expect("response type") {
+            "textResultBatch" => {
+                results.extend(response["results"].as_array().expect("matches").clone());
+            }
+            "textSearchComplete" => {
+                assert_eq!(response["resultCount"], expected.len());
+                assert_eq!(response["warnings"], json!([]));
+                break;
+            }
+            kind => panic!("unexpected response: {kind}: {response}"),
+        }
+    }
+    let mut paths: Vec<_> = results
+        .iter()
+        .map(|result| {
+            (
+                result["rootId"].as_str().expect("root ID"),
+                result["uri"].as_str().expect("file URI"),
+            )
+        })
+        .collect();
+    paths.sort_unstable();
+    assert_eq!(paths.len(), expected.len());
+    for ((root, uri), (expected_root, expected_suffix)) in paths.iter().zip(expected) {
+        assert_eq!(root, expected_root);
+        assert!(uri.ends_with(expected_suffix), "unexpected URI: {uri}");
+    }
+}
+
+#[test]
+fn includes_plain_folders_and_root_relative_paths() {
+    let root = TempDir::new().expect("workspace");
+    for path in [
+        "src/app.txt",
+        "packages/src/nested/deep.txt",
+        "src-old/other.txt",
+        "docs/readme.txt",
+        "README.md",
+        "release.v1/notes.txt",
+        "my folder/notes.txt",
+    ] {
+        fs::create_dir_all(root.path().join(path).parent().expect("parent")).expect("folder");
+        fs::write(root.path().join(path), "fixture phrase").expect("fixture");
+    }
+    let mut engine = Engine::start();
+    engine.send(json!({"type":"initialize", "version":1, "requestId":"init", "roots":[{"id":"one", "path":root.path()}], "configuration":{}}));
+    engine.until("indexReady");
+    assert_included_paths(
+        &mut engine,
+        &["src"],
+        &[
+            ("one", "/packages/src/nested/deep.txt"),
+            ("one", "/src/app.txt"),
+        ],
+    );
+    assert_included_paths(
+        &mut engine,
+        &["src/"],
+        &[
+            ("one", "/packages/src/nested/deep.txt"),
+            ("one", "/src/app.txt"),
+        ],
+    );
+    assert_included_paths(&mut engine, &["./src"], &[("one", "/src/app.txt")]);
+    assert_included_paths(
+        &mut engine,
+        &["src", "docs"],
+        &[
+            ("one", "/docs/readme.txt"),
+            ("one", "/packages/src/nested/deep.txt"),
+            ("one", "/src/app.txt"),
+        ],
+    );
+    assert_included_paths(&mut engine, &["README.md"], &[("one", "/README.md")]);
+    assert_included_paths(
+        &mut engine,
+        &["release.v1"],
+        &[("one", "/release.v1/notes.txt")],
+    );
+    assert_included_paths(
+        &mut engine,
+        &["my folder"],
+        &[("one", "/my%20folder/notes.txt")],
+    );
+    assert_included_paths(
+        &mut engine,
+        &["*.txt"],
+        &[
+            ("one", "/docs/readme.txt"),
+            ("one", "/my%20folder/notes.txt"),
+            ("one", "/packages/src/nested/deep.txt"),
+            ("one", "/release.v1/notes.txt"),
+            ("one", "/src-old/other.txt"),
+            ("one", "/src/app.txt"),
+        ],
+    );
+    assert_included_paths(
+        &mut engine,
+        &["src", "**/*.md"],
+        &[
+            ("one", "/README.md"),
+            ("one", "/packages/src/nested/deep.txt"),
+            ("one", "/src/app.txt"),
+        ],
+    );
+    assert_included_paths(
+        &mut engine,
+        &[],
+        &[
+            ("one", "/README.md"),
+            ("one", "/docs/readme.txt"),
+            ("one", "/my%20folder/notes.txt"),
+            ("one", "/packages/src/nested/deep.txt"),
+            ("one", "/release.v1/notes.txt"),
+            ("one", "/src-old/other.txt"),
+            ("one", "/src/app.txt"),
+        ],
+    );
+    assert_included_paths(&mut engine, &["missing"], &[]);
+    assert_included_paths(&mut engine, &["src/**"], &[("one", "/src/app.txt")]);
+}
+
+#[test]
+fn selects_named_workspace_roots_and_preserves_names_after_refresh() {
+    let backend = TempDir::new().expect("backend");
+    let frontend = TempDir::new().expect("frontend");
+    let empty = TempDir::new().expect("empty root");
+    for workspace in [&backend, &frontend] {
+        fs::create_dir_all(workspace.path().join("src/nested")).expect("source folder");
+        fs::write(workspace.path().join("src/app.swift"), "fixture phrase").expect("source file");
+        fs::write(
+            workspace.path().join("src/nested/deep.swift"),
+            "fixture phrase",
+        )
+        .expect("nested file");
+        fs::write(workspace.path().join("README.md"), "fixture phrase").expect("readme");
+    }
+    let roots = json!([
+        {"id":"back", "path":backend.path(), "name":"backend"},
+        {"id":"front", "path":frontend.path(), "name":"frontend"},
+        {"id":"empty", "path":empty.path(), "name":"empty"}
+    ]);
+    let mut engine = Engine::start();
+    engine.send(json!({"type":"initialize", "version":1, "requestId":"init", "roots":roots, "configuration":{}}));
+    engine.until("indexReady");
+    assert_included_paths(
+        &mut engine,
+        &["./backend"],
+        &[
+            ("back", "/README.md"),
+            ("back", "/src/app.swift"),
+            ("back", "/src/nested/deep.swift"),
+        ],
+    );
+    assert_included_paths(
+        &mut engine,
+        &["./backend/src/"],
+        &[
+            ("back", "/src/app.swift"),
+            ("back", "/src/nested/deep.swift"),
+        ],
+    );
+    assert_included_paths(
+        &mut engine,
+        &["./backend/src/*.swift"],
+        &[("back", "/src/app.swift")],
+    );
+    assert_included_paths(
+        &mut engine,
+        &["./backend/src", "./frontend/README.md"],
+        &[
+            ("back", "/src/app.swift"),
+            ("back", "/src/nested/deep.swift"),
+            ("front", "/README.md"),
+        ],
+    );
+    assert_included_paths(
+        &mut engine,
+        &["src"],
+        &[
+            ("back", "/src/app.swift"),
+            ("back", "/src/nested/deep.swift"),
+            ("front", "/src/app.swift"),
+            ("front", "/src/nested/deep.swift"),
+        ],
+    );
+    assert_included_paths(&mut engine, &["./missing"], &[]);
+    assert_included_paths(&mut engine, &["./empty"], &[]);
+    assert_included_paths(&mut engine, &["./src"], &[]);
+    fs::write(backend.path().join("src/new.swift"), "fixture phrase").expect("new file");
+    engine.wait_for_file("new.swift");
+    assert_included_paths(
+        &mut engine,
+        &["./backend/src"],
+        &[
+            ("back", "/src/app.swift"),
+            ("back", "/src/nested/deep.swift"),
+            ("back", "/src/new.swift"),
+        ],
+    );
+    let renamed = json!([
+        {"id":"back", "path":backend.path(), "name":"renamed"},
+        {"id":"front", "path":frontend.path(), "name":"renamed"},
+        {"id":"empty", "path":empty.path(), "name":"empty"}
+    ]);
+    engine.send(json!({"type":"reconfigure", "version":1, "requestId":"rename", "roots":renamed, "configuration":{}}));
+    engine.until("indexReady");
+    assert_included_paths(&mut engine, &["./backend"], &[]);
+    assert_included_paths(
+        &mut engine,
+        &["./renamed/README.md"],
+        &[("back", "/README.md"), ("front", "/README.md")],
+    );
+    engine.send(json!({"type":"reconfigure", "version":1, "requestId":"legacy", "roots":[{"id":"back", "path":backend.path()}, {"id":"empty", "path":empty.path()}], "configuration":{}}));
+    engine.until("indexReady");
+    let legacy = format!(
+        "./{}/README.md",
+        backend
+            .path()
+            .file_name()
+            .expect("basename")
+            .to_str()
+            .expect("UTF-8")
+    );
+    assert_included_paths(&mut engine, &[&legacy], &[("back", "/README.md")]);
+}

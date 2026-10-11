@@ -143,6 +143,7 @@ dependencies = [
  "ignore",
  "percent-encoding",
  "serde",
+ "tempfile",
 ]
 
 [[package]]
