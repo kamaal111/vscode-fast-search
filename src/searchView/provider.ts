@@ -247,7 +247,9 @@ function groupResults(results: TextMatch[], icons: IconTheme) {
         ? resource.scheme === "untitled"
           ? "Unsaved"
           : parent.fsPath
-        : vscode.workspace.asRelativePath(parent, multiRoot);
+        : parent.toString() === folder.uri.toString()
+          ? ""
+          : vscode.workspace.asRelativePath(parent, multiRoot);
     return {
       uri,
       filename,

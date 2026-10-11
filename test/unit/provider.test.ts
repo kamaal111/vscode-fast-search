@@ -67,10 +67,8 @@ vi.mock("vscode", () => ({
           uri.path.startsWith(`${root.uri.path}/`),
       ),
     asRelativePath: (uri: { path: string }, includeRoot: boolean) => {
-      const root = host.roots.find(
-        (item) =>
-          uri.path === item.uri.path ||
-          uri.path.startsWith(`${item.uri.path}/`),
+      const root = host.roots.find((item) =>
+        uri.path.startsWith(`${item.uri.path}/`),
       );
       if (root === undefined) return uri.path;
       const path = uri.path
@@ -220,6 +218,7 @@ it("omits the directory for root files and labels untitled and outside-workspace
         expect.objectContaining({
           filename: "pnpm-workspace.yaml",
           directory: "",
+          path: "/workspace/pnpm-workspace.yaml",
         }),
         expect.objectContaining({
           filename: "example.ts",
@@ -256,6 +255,36 @@ it("qualifies directories with root names in a multi-root workspace", () => {
         expect.objectContaining({
           filename: "example.ts",
           directory: "other/src",
+        }),
+      ]),
+    }),
+  );
+  provider.dispose();
+});
+
+it("omits directories for root files in every workspace folder", () => {
+  host.roots.push({
+    uri: host.Resource.parse("file:///other"),
+    name: "other",
+    index: 1,
+  });
+  const { provider, batch, postMessage } = setup();
+  batch([
+    match("file:///workspace/package.json"),
+    match("file:///other/package.json"),
+  ]);
+  expect(postMessage).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      groups: expect.arrayContaining([
+        expect.objectContaining({
+          filename: "package.json",
+          directory: "",
+          path: "/workspace/package.json",
+        }),
+        expect.objectContaining({
+          filename: "package.json",
+          directory: "",
+          path: "/other/package.json",
         }),
       ]),
     }),
