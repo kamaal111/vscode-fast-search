@@ -1,0 +1,94 @@
+/* Deterministic theme tokens supplied by VS Code in the real webview. */
+@font-face {
+  font-family: "UI Test";
+  src: url("/font.woff2") format("woff2");
+  font-weight: 400;
+}
+:root {
+  --vscode-font-family: "UI Test", sans-serif;
+  --vscode-font-size: 13px;
+  --vscode-editor-font-family: "UI Test", sans-serif;
+}
+.vscode-dark {
+  --vscode-foreground: #cccccc;
+  --vscode-sideBar-background: #181818;
+  --vscode-descriptionForeground: #9d9d9d;
+  --vscode-input-foreground: #cccccc;
+  --vscode-input-background: #313131;
+  --vscode-input-border: #3c3c3c;
+  --vscode-input-placeholderForeground: #989898;
+  --vscode-inputOption-hoverBackground: #5a5d5e80;
+  --vscode-inputOption-activeForeground: #ffffff;
+  --vscode-inputOption-activeBackground: #2489db82;
+  --vscode-inputOption-activeBorder: #2488db;
+  --vscode-button-secondaryForeground: #cccccc;
+  --vscode-button-secondaryBackground: #313131;
+  --vscode-button-secondaryHoverBackground: #3c3c3c;
+  --vscode-focusBorder: #0078d4;
+  --vscode-toolbar-hoverBackground: #5a5d5e50;
+  --vscode-checkbox-background: #313131;
+  --vscode-list-hoverBackground: #2b2d2e;
+  --vscode-list-focusBackground: #04395e;
+  --vscode-list-focusForeground: #ffffff;
+  --vscode-editor-findMatchHighlightBackground: #ea5c0055;
+  --vscode-editorHoverWidget-foreground: #cccccc;
+  --vscode-editorHoverWidget-background: #202020;
+  --vscode-editorHoverWidget-border: #454545;
+  --vscode-widget-shadow: #0000005c;
+}
+.vscode-light {
+  --vscode-foreground: #3b3b3b;
+  --vscode-sideBar-background: #f8f8f8;
+  --vscode-descriptionForeground: #616161;
+  --vscode-input-foreground: #3b3b3b;
+  --vscode-input-background: #ffffff;
+  --vscode-input-border: #cecece;
+  --vscode-input-placeholderForeground: #767676;
+  --vscode-inputOption-hoverBackground: #b8b8b850;
+  --vscode-inputOption-activeForeground: #000000;
+  --vscode-inputOption-activeBackground: #0090f133;
+  --vscode-inputOption-activeBorder: #007acc;
+  --vscode-button-secondaryForeground: #3b3b3b;
+  --vscode-button-secondaryBackground: #e5e5e5;
+  --vscode-button-secondaryHoverBackground: #cccccc;
+  --vscode-focusBorder: #0090f1;
+  --vscode-toolbar-hoverBackground: #b8b8b850;
+  --vscode-checkbox-background: #ffffff;
+  --vscode-list-hoverBackground: #e8e8e8;
+  --vscode-list-focusBackground: #d6ebff;
+  --vscode-list-focusForeground: #000000;
+  --vscode-editor-findMatchHighlightBackground: #ea5c0055;
+  --vscode-editorHoverWidget-foreground: #3b3b3b;
+  --vscode-editorHoverWidget-background: #f8f8f8;
+  --vscode-editorHoverWidget-border: #cecece;
+  --vscode-widget-shadow: #00000029;
+}
+.vscode-high-contrast {
+  --vscode-foreground: #ffffff;
+  --vscode-sideBar-background: #000000;
+  --vscode-descriptionForeground: #ffffff;
+  --vscode-input-foreground: #ffffff;
+  --vscode-input-background: #000000;
+  --vscode-input-border: #6fc3df;
+  --vscode-input-placeholderForeground: #ffffff;
+  --vscode-inputOption-hoverBackground: #000000;
+  --vscode-inputOption-activeForeground: #ffffff;
+  --vscode-inputOption-activeBackground: #000000;
+  --vscode-inputOption-activeBorder: #f38518;
+  --vscode-button-secondaryForeground: #ffffff;
+  --vscode-button-secondaryBackground: #000000;
+  --vscode-button-secondaryHoverBackground: #000000;
+  --vscode-button-border: #ffffff;
+  --vscode-focusBorder: #f38518;
+  --vscode-toolbar-hoverBackground: #000000;
+  --vscode-checkbox-background: #000000;
+  --vscode-list-hoverBackground: #000000;
+  --vscode-list-focusBackground: #000000;
+  --vscode-list-focusForeground: #ffffff;
+  --vscode-editor-findMatchHighlightBackground: #000000;
+  --vscode-editor-findMatchHighlightBorder: #f38518;
+  --vscode-editorHoverWidget-foreground: #ffffff;
+  --vscode-editorHoverWidget-background: #000000;
+  --vscode-editorHoverWidget-border: #6fc3df;
+  --vscode-contrastBorder: #6fc3df;
+}

@@ -57,6 +57,7 @@ The repository pins pnpm 12.4.1. Install the license tools with `cargo install c
 pnpm install --frozen-lockfile
 pnpm run test:integration       # native black-box protocol flow first
 pnpm run test:extension         # packaged-sidecar extension-host flow
+pnpm run test:ui                # browser interactions, visuals, accessibility
 pnpm run test:unit              # focused TypeScript and Rust units
 pnpm run typecheck
 pnpm run format:check
@@ -70,6 +71,29 @@ pnpm run package
 Run one native test with `cargo test --manifest-path native/Cargo.toml -p fast-search-engine --test engine_protocol <name>` and one TypeScript test with `pnpm exec vitest run test/unit/protocol.test.ts`. `scripts/build-universal.sh` builds both Apple targets and combines them with `lipo`; packaging must never substitute a host-only binary.
 
 For an unsupported workspace, open a trusted local folder. If results appear stale, run **Rebuild Index**. If the engine exits unexpectedly, it is restarted once and reinitialized; a second failure stops it. Open **Show Diagnostics** for stderr and state. A release candidate must also be installed into stock VS Code and manually checked for shortcuts, keyboard/ARIA navigation, themes, indexing progress, and crash recovery.
+
+### Automated UI tests
+
+With Docker running, `pnpm run test:ui` renders the production search
+webview HTML, CSS, and JavaScript in Chromium. It checks interactions,
+keyboard navigation, tooltip visibility, flush sidebar edges, narrow
+sidebar overflow, and automated WCAG accessibility rules. Screenshot
+comparisons cover light, dark, and high-contrast themes at 320 px and
+180 px sidebar widths, including results, hover help, empty, searching,
+and error states.
+
+Local runs and the dedicated CI `ui` job use the same official Playwright
+Linux arm64 container. Its version follows the exact `@playwright/test`
+dependency. A bundled test font and fixed theme tokens keep rendering
+repeatable across machines. Only the VS Code message transport is stubbed;
+the existing extension-host suite continues to check the real host.
+
+For an intentional UI change, run `pnpm run test:ui:update`, inspect the
+changed PNGs in `test/ui/snapshots`, and commit them with the change.
+Then run `pnpm run test:ui` to verify the comparisons. CI never updates
+baselines automatically. Failures produce `playwright-report` and
+`test-results` with expected, actual, and diff images plus browser traces;
+CI uploads those as the `ui-test-report` artifact for 14 days.
 
 ### Install and visually test a local build
 

@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import type { EngineClient } from "../engine/client.js";
 import type { DocumentOverlay, TextMatch } from "../engine/protocol.js";
 import { SearchModel, type SearchState } from "./model.js";
+import { searchViewHtml } from "./html.js";
 
 type ProviderOptions = {
   extensionUri: vscode.Uri;
@@ -156,7 +157,12 @@ export class SearchViewProvider
     const style = webview.asWebviewUri(
       vscode.Uri.joinPath(this.options.extensionUri, "media", "search.css"),
     );
-    return `<!doctype html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource}; script-src 'nonce-${nonce}'"><link rel="stylesheet" href="${style}"></head><body><form id="search-form"><label>Search<input id="query" list="history" autocomplete="off"><datalist id="history"></datalist></label><div class="toggles"><button type="button" data-toggle="caseSensitive" aria-pressed="false" title="Match Case">Aa</button><button type="button" data-toggle="wholeWord" aria-pressed="false" title="Whole Word">ab</button><button type="button" data-toggle="regex" aria-pressed="false" title="Regular Expression">.*</button><button type="button" id="cancel">Cancel</button></div><label>Files to include<input id="include"></label><label>Files to exclude<input id="exclude"></label><label class="check"><input id="useExcludes" type="checkbox" checked> Use exclude and ignore settings</label></form><div id="status" role="status" aria-live="polite"></div><div id="results" role="tree" aria-label="Search results"></div><script nonce="${nonce}" src="${script}"></script></body></html>`;
+    return searchViewHtml({
+      scriptUri: script.toString(),
+      styleUri: style.toString(),
+      cspSource: webview.cspSource,
+      nonce,
+    });
   }
 }
 
