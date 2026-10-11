@@ -1,0 +1,21 @@
+package.json
+  s_69c06c20882cb3::t_28c18c4a7dc180 11,17
+README.md
+  s_69c06c20882cb3::t_28c18c4a7dc180 52
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ed87f19c9f57793f614d9dc1e680e6ec512b4b55",
+  "prompts": {},
+  "sessions": {
+    "s_69c06c20882cb3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12bd3-eb85-7ad3-a2e6-7c157bcba9d1",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Kamaal Farah <kamaal.f1@gmail.com>"
+    }
+  }
+}
