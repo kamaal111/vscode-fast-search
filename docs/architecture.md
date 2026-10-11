@@ -26,8 +26,4 @@ Text options are resolved before candidates are opened. Include and explicit exc
 
 Keeping normalized paths and compact rejection metadata in immutable memory removes filesystem work from warm filename matching. Saturated character counts reject impossible candidates, digit postings narrow numeric queries, Rayon spreads survivors, and result strings/positions are allocated only for the final bounded set. Text search cannot avoid content I/O, so pre-open globs, parallel reads, binary rejection, early limits, streaming, and cancellation matter more than retaining contents.
 
-Benchmarks must generate their own one-million-path and content corpora outside the repository. Record native and VS Code end-to-end p50/p95, peak RSS, first-batch time, and cancellation acknowledgement on the same Apple Silicon machine. Zed and stock VS Code may be timed on the same representative repository only as behavioral comparisons; their source or fixtures are never imported.
-
-## Independent implementation
-
-Observed Zed behavior—fast fuzzy file navigation, responsive streamed search, and a persistent project index—motivates the user experience. Fast Search's protocol, data layout, ranking bonuses, cancellation generations, modules, tests, and UI are original. No GPL-covered Zed implementation was copied or mechanically translated. Reusing Zed implementation details or modifying MPL-covered dependency files requires a fresh license review.
+Benchmarks must generate their own one-million-path and content corpora outside the repository. Record native and VS Code end-to-end p50/p95, peak RSS, first-batch time, and cancellation acknowledgement on the same Apple Silicon machine.
