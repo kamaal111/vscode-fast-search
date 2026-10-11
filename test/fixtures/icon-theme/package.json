@@ -1,0 +1,17 @@
+{
+  "name": "fast-search-test-icons",
+  "publisher": "fast-search-tests",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.137.0"
+  },
+  "contributes": {
+    "iconThemes": [
+      {
+        "id": "fast-search-test-icons",
+        "label": "Fast Search Test Icons",
+        "path": "icons.json"
+      }
+    ]
+  }
+}

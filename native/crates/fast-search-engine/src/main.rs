@@ -18,7 +18,7 @@ fn main() {
     let active_text_request = Arc::new(Mutex::new(None::<String>));
     let mut watcher: Option<PollWatcher> = None;
     let (responses, receiver) = mpsc::channel::<Response>();
-    thread::spawn(move || {
+    let output_thread = thread::spawn(move || {
         let stdout = io::stdout();
         let mut output = stdout.lock();
         while let Ok(response) = receiver.recv() {
@@ -298,6 +298,11 @@ fn main() {
         }
     }
     drop(watcher);
+    file_searcher.cancellation().cancel();
+    text_searcher.cancellation().cancel();
+    drop(responses);
+    // Drain queued responses, including the shutdown acknowledgement, before exit.
+    let _ = output_thread.join();
 }
 
 type WatchEvents = mpsc::Receiver<notify::Result<notify::Event>>;

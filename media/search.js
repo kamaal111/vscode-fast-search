@@ -129,8 +129,11 @@ function describeControl(control, id, description) {
 }
 
 const pageSize = 300;
-let visibleMatches = pageSize;
-let previousCount = 0;
+let visibleRows = pageSize;
+let session;
+let latestData;
+const collapsed = new Set();
+const pagination = document.querySelector("#result-pagination");
 for (const [element, field] of [
   [query, "query"],
   [include, "include"],
@@ -164,6 +167,10 @@ for (const button of document.querySelectorAll("[data-toggle]"))
     vscode.postMessage({ type: "toggle", field: button.dataset.toggle, value });
   });
 window.addEventListener("message", ({ data }) => {
+  if (data.type === "iconTheme") {
+    document.querySelector("#file-icon-theme").textContent = data.css;
+    return;
+  }
   if (data.type !== "state") return;
   const state = data.state;
   for (const [element, value] of [
@@ -184,107 +191,307 @@ window.addEventListener("message", ({ data }) => {
       return option;
     }),
   );
+  latestData = data;
+  if (session !== state.session) {
+    session = state.session;
+    collapsed.clear();
+    visibleRows = pageSize;
+  }
+
+  const count = state.results.length;
+  const files = data.groups.length;
   status.textContent =
     state.error ??
     data.indexStatus ??
     data.announcement ??
-    (state.searching
-      ? `Searching… ${state.results.length} results`
-      : `${state.results.length} results${state.warnings.length ? ` · ${state.warnings.length} skipped` : ""}`);
-  if (state.results.length < previousCount) visibleMatches = pageSize;
-  previousCount = state.results.length;
+    `${state.searching ? "Searching… " : ""}${count} ${count === 1 ? "result" : "results"} in ${files} ${files === 1 ? "file" : "files"}${state.warnings.length ? ` · ${state.warnings.length} skipped` : ""}`;
+  renderResults();
+});
+
+function treeRows() {
+  return [...results.querySelectorAll('[role="treeitem"]')];
+}
+
+function focusRow(row) {
+  for (const item of treeRows()) item.tabIndex = item === row ? 0 : -1;
+  row?.focus();
+}
+
+function dismiss(row) {
+  if (row === null || latestData === undefined) return;
+  const message =
+    row.dataset.kind === "file"
+      ? { type: "dismissFile", session, uri: row.dataset.uri }
+      : { type: "dismissMatch", session, id: row.dataset.matchId };
+  vscode.postMessage(message);
+}
+
+function toggleFile(uri) {
+  if (collapsed.has(uri)) collapsed.delete(uri);
+  else collapsed.add(uri);
+  renderResults();
+}
+
+function dismissButton(row, name, helpId) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.tabIndex = -1;
+  button.className = "dismiss-result";
+  button.setAttribute("aria-label", name);
+  button.textContent = "×";
+  describeControl(
+    button,
+    helpId,
+    "Hide these search results. Files are not changed; running a new search restores matching results.",
+  );
+  button.addEventListener("click", (event) => {
+    event.stopPropagation();
+    dismiss(row);
+  });
+  return button;
+}
+
+function renderResults() {
+  if (latestData === undefined) return;
+  const { groups, showLineNumbers } = latestData;
+  const oldRows = treeRows();
+  const active = document.activeElement?.closest('[role="treeitem"]');
+  const activeKey = active?.dataset.key;
+  const actionFocused =
+    document.activeElement?.classList.contains("dismiss-result");
+  const oldIndex = oldRows.indexOf(active);
+  const scrollTop = document.documentElement.scrollTop;
   const sections = [];
   let rendered = 0;
-  for (const group of data.groups) {
-    if (rendered >= visibleMatches) break;
+  let totalRows = 0;
+  for (const group of groups) {
+    const expanded = !collapsed.has(group.uri);
+    totalRows += 1 + (expanded ? group.matches.length : 0);
+    if (rendered >= visibleRows) continue;
     const section = document.createElement("div");
     section.className = "result-group";
+    section.setAttribute("role", "treeitem");
+    section.setAttribute("aria-expanded", String(expanded));
+    section.setAttribute("aria-level", "1");
+    section.setAttribute(
+      "aria-label",
+      `${group.filename}, ${group.directory || "project root"}, ${group.count} ${group.count === 1 ? "match" : "matches"}`,
+    );
+    section.dataset.kind = "file";
+    section.dataset.uri = group.uri;
+    section.dataset.key = `file:${group.uri}`;
+    section.tabIndex = -1;
     const heading = document.createElement("div");
     heading.className = "result-heading";
-    heading.setAttribute("role", "treeitem");
-    heading.setAttribute("aria-expanded", "true");
-    heading.setAttribute("aria-level", "1");
-    heading.textContent = group.uri.replace("file://", "");
+    heading.title = group.path;
+    const chevron = document.createElement("span");
+    chevron.className = "chevron";
+    chevron.setAttribute("aria-hidden", "true");
+    chevron.textContent = expanded ? "⌄" : "›";
+    const icon = document.createElement("span");
+    icon.className = `file-icon ${group.icon ?? ""}`;
+    icon.hidden = !group.icon;
+    icon.setAttribute("aria-hidden", "true");
+    const filename = document.createElement("span");
+    filename.className = "filename";
+    filename.textContent = group.filename;
+    const directory = document.createElement("span");
+    directory.className = "directory";
+    directory.textContent = group.directory;
+    const badge = document.createElement("span");
+    badge.className = "match-count";
+    badge.textContent = String(group.count);
+    badge.title = `${group.count} matches found`;
+    heading.append(
+      chevron,
+      icon,
+      filename,
+      directory,
+      badge,
+      dismissButton(
+        section,
+        `Dismiss results in ${group.filename}`,
+        `file-dismiss-help-${rendered}`,
+      ),
+    );
+    heading.addEventListener("click", () => {
+      focusRow(section);
+      toggleFile(group.uri);
+    });
     section.append(heading);
+    rendered += 1;
     const children = document.createElement("div");
     children.setAttribute("role", "group");
-    for (const match of group.matches.slice(0, visibleMatches - rendered)) {
-      const row = document.createElement("button");
-      row.className = "result";
-      row.type = "button";
-      const path = match.uri.replace("file://", "");
-      row.setAttribute(
-        "aria-label",
-        `${path}, line ${match.line + 1}, column ${match.startColumn + 1}: ${match.preview}`,
-      );
-      row.setAttribute("role", "treeitem");
-      row.setAttribute("aria-level", "2");
-      const location = document.createElement("span");
-      location.className = "location";
-      location.textContent = `${match.line + 1}:${match.startColumn + 1}  `;
-      const before = document.createTextNode(
-        match.preview.slice(0, match.previewStart),
-      );
-      const highlight = document.createElement("mark");
-      highlight.textContent = match.preview.slice(
-        match.previewStart,
-        match.previewEnd,
-      );
-      const after = document.createTextNode(
-        match.preview.slice(match.previewEnd),
-      );
-      row.append(location, before, highlight, after);
-      describeControl(
-        row,
-        `result-help-${rendered}`,
-        `Open ${path} at line ${match.line + 1}, column ${match.startColumn + 1} and select this match.`,
-      );
-      row.addEventListener("click", () =>
-        vscode.postMessage({
-          type: "open",
-          uri: match.uri,
-          line: match.line,
-          column: match.startColumn,
-          endLine: match.endLine,
-          endColumn: match.endColumn,
-        }),
-      );
-      children.append(row);
-      rendered += 1;
-    }
-    section.append(children);
+    if (expanded)
+      for (const match of group.matches) {
+        if (rendered >= visibleRows) break;
+        const row = document.createElement("div");
+        row.className = "result";
+        row.tabIndex = -1;
+        row.dataset.kind = "match";
+        row.dataset.uri = group.uri;
+        row.dataset.matchId = match.id;
+        row.dataset.key = `match:${match.id}`;
+        row.setAttribute(
+          "aria-label",
+          `${group.path}, line ${match.line + 1}, column ${match.startColumn + 1}: ${match.preview}`,
+        );
+        row.setAttribute("role", "treeitem");
+        row.setAttribute("aria-level", "2");
+        const preview = document.createElement("span");
+        preview.className = "match-preview";
+        if (showLineNumbers || match.endLine > match.line) {
+          const location = document.createElement("span");
+          location.className = "location";
+          location.textContent = `${showLineNumbers ? `${match.line + 1}:` : ""}${match.endLine > match.line ? `+${match.endLine - match.line}` : ""} `;
+          preview.append(location);
+        }
+        const highlight = document.createElement("mark");
+        highlight.textContent = match.preview.slice(
+          match.previewStart,
+          match.previewEnd,
+        );
+        preview.append(
+          document.createTextNode(
+            match.preview.slice(0, match.previewStart).trimStart(),
+          ),
+          highlight,
+          document.createTextNode(match.preview.slice(match.previewEnd)),
+        );
+        describeControl(
+          row,
+          `result-help-${rendered}`,
+          `Open ${group.path} at line ${match.line + 1}, column ${match.startColumn + 1} and select this match.`,
+        );
+        row.append(
+          preview,
+          dismissButton(
+            row,
+            `Dismiss match at line ${match.line + 1}, column ${match.startColumn + 1} in ${group.filename}`,
+            `match-dismiss-help-${rendered}`,
+          ),
+        );
+        row.addEventListener("click", () => {
+          focusRow(row);
+          vscode.postMessage({
+            type: "open",
+            uri: match.uri,
+            line: match.line,
+            column: match.startColumn,
+            endLine: match.endLine,
+            endColumn: match.endColumn,
+          });
+        });
+        children.append(row);
+        rendered += 1;
+      }
+    if (children.childElementCount > 0) section.append(children);
     sections.push(section);
   }
-  if (rendered < state.results.length) {
+  if (
+    helpTarget !== undefined &&
+    (results.contains(helpTarget) || pagination.contains(helpTarget))
+  )
+    hideHelp();
+  results.replaceChildren(...sections);
+  pagination.replaceChildren();
+  if (rendered < totalRows) {
     const more = document.createElement("button");
     more.className = "show-more";
     more.type = "button";
-    const nextCount = Math.min(pageSize, state.results.length - rendered);
-    more.textContent = `Show next ${nextCount} results`;
+    const nextCount = Math.min(pageSize, totalRows - rendered);
+    more.textContent = `Show next ${nextCount} rows`;
     more.setAttribute("aria-label", more.textContent);
     describeControl(
       more,
       "more-help",
-      `Display the next ${nextCount} search results.`,
+      `Display the next ${nextCount} file and match rows.`,
     );
     more.addEventListener("click", () => {
-      visibleMatches += pageSize;
-      window.dispatchEvent(new MessageEvent("message", { data }));
+      visibleRows += pageSize;
+      renderResults();
+      if (pagination.firstElementChild !== null)
+        pagination.firstElementChild.focus();
+      else focusRow(treeRows().at(-1));
     });
-    sections.push(more);
+    pagination.append(more);
   }
-  if (helpTarget !== undefined && results.contains(helpTarget)) hideHelp();
-  results.replaceChildren(...sections);
+  const rows = treeRows();
+  let next = rows.find((row) => row.dataset.key === activeKey);
+  if (
+    next === undefined &&
+    active?.dataset.kind === "match" &&
+    collapsed.has(active.dataset.uri)
+  )
+    next = rows.find(
+      (row) =>
+        row.dataset.kind === "file" && row.dataset.uri === active.dataset.uri,
+    );
+  next ??= rows[Math.min(Math.max(oldIndex, 0), rows.length - 1)];
+  if (next !== undefined) {
+    next.tabIndex = 0;
+    if (oldIndex >= 0) {
+      const focus =
+        actionFocused && next.dataset.key === activeKey
+          ? next.querySelector(
+              ":scope > .dismiss-result, :scope > .result-heading > .dismiss-result",
+            )
+          : next;
+      (focus ?? next).focus({ preventScroll: true });
+    }
+  } else if (oldIndex >= 0) query.focus({ preventScroll: true });
+  document.documentElement.scrollTop = scrollTop;
+}
+
+results.addEventListener("focusin", (event) => {
+  const row = event.target.closest('[role="treeitem"]');
+  if (row === null) return;
+  for (const item of treeRows()) {
+    item.tabIndex = item === row ? 0 : -1;
+    const button = item.querySelector(
+      ":scope > .dismiss-result, :scope > .result-heading > .dismiss-result",
+    );
+    if (button !== null) button.tabIndex = item === row ? 0 : -1;
+  }
 });
 results.addEventListener("keydown", (event) => {
-  if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
-  const rows = [...results.querySelectorAll(".result")];
-  const current = rows.indexOf(document.activeElement);
-  const direction = event.key === "ArrowDown" ? 1 : -1;
-  const next =
-    rows[Math.max(0, Math.min(rows.length - 1, current + direction))];
-  if (next !== undefined) {
-    event.preventDefault();
-    next.focus();
-  }
+  const row = event.target.closest('[role="treeitem"]');
+  if (row === null) return;
+  const rows = treeRows();
+  const index = rows.indexOf(row);
+  let next;
+  if (event.key === "ArrowDown")
+    next = rows[Math.min(rows.length - 1, index + 1)];
+  else if (event.key === "ArrowUp") next = rows[Math.max(0, index - 1)];
+  else if (event.key === "Home") next = rows[0];
+  else if (event.key === "End") next = rows.at(-1);
+  else if (event.key === "ArrowLeft") {
+    if (row.dataset.kind === "file") {
+      if (!collapsed.has(row.dataset.uri)) toggleFile(row.dataset.uri);
+    } else next = row.closest(".result-group");
+  } else if (event.key === "ArrowRight") {
+    if (row.dataset.kind === "file") {
+      if (collapsed.has(row.dataset.uri)) toggleFile(row.dataset.uri);
+      else
+        next =
+          rows[index + 1]?.dataset.kind === "match"
+            ? rows[index + 1]
+            : undefined;
+    }
+  } else if (
+    event.key === "Delete" ||
+    (event.key === "Backspace" && event.metaKey)
+  )
+    dismiss(row);
+  else if (
+    (event.key === "Enter" || event.key === " ") &&
+    event.target === row
+  ) {
+    if (row.dataset.kind === "file") toggleFile(row.dataset.uri);
+    else row.click();
+  } else return;
+  event.preventDefault();
+  if (next !== undefined) focusRow(next);
 });
+
+vscode.postMessage({ type: "ready" });

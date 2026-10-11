@@ -30,7 +30,6 @@ const server = createServer(async (request, response) => {
         cspSource: "'self'",
         nonce: "ui-test",
       })
-        .replace("default-src 'none';", "default-src 'none'; font-src 'self';")
         .replace("</head>", '<link rel="stylesheet" href="/theme.css"></head>')
         .replace("<body>", `<body class="vscode-${theme}">`);
       response.writeHead(200, { "Content-Type": "text/html" }).end(html);

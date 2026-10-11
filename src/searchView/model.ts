@@ -6,6 +6,7 @@ import type {
 import type { EngineClient, SearchHandle } from "../engine/client.js";
 
 export type SearchState = {
+  session: number;
   query: string;
   include: string;
   exclude: string;
@@ -33,6 +34,7 @@ const initialOptions = {
 };
 export class SearchModel {
   private state: SearchState = {
+    session: 0,
     query: "",
     include: "",
     exclude: "",
@@ -45,6 +47,8 @@ export class SearchModel {
   private timer: NodeJS.Timeout | undefined;
   private active: SearchHandle | undefined;
   private generation = 0;
+  private readonly dismissedMatches = new Set<string>();
+  private readonly dismissedFiles = new Set<string>();
   constructor(private readonly config: SearchModelOptions) {}
   current(): SearchState {
     return this.state;
@@ -70,6 +74,9 @@ export class SearchModel {
     if (this.timer !== undefined) clearTimeout(this.timer);
     this.active?.cancel();
     const generation = ++this.generation;
+    this.dismissedMatches.clear();
+    this.dismissedFiles.clear();
+    this.state = { ...this.state, session: this.state.session + 1 };
     if (this.state.query.length === 0) {
       this.state = {
         ...this.state,
@@ -109,7 +116,14 @@ export class SearchModel {
           if (generation === this.generation) {
             this.state = {
               ...this.state,
-              results: [...this.state.results, ...results].sort(compareMatches),
+              results: [
+                ...this.state.results,
+                ...results.filter(
+                  (match) =>
+                    !this.dismissedFiles.has(match.uri) &&
+                    !this.dismissedMatches.has(resultId(match)),
+                ),
+              ].sort(compareMatches),
             };
             this.emit();
           }
@@ -137,7 +151,34 @@ export class SearchModel {
       },
     );
   }
+  dismissMatch(session: number, id: string): void {
+    if (
+      session !== this.state.session ||
+      !this.state.results.some((match) => resultId(match) === id)
+    )
+      return;
+    this.dismissedMatches.add(id);
+    this.state = {
+      ...this.state,
+      results: this.state.results.filter((match) => resultId(match) !== id),
+    };
+    this.emit();
+  }
+  dismissFile(session: number, uri: string): void {
+    if (
+      session !== this.state.session ||
+      !this.state.results.some((match) => match.uri === uri)
+    )
+      return;
+    this.dismissedFiles.add(uri);
+    this.state = {
+      ...this.state,
+      results: this.state.results.filter((match) => match.uri !== uri),
+    };
+    this.emit();
+  }
   cancel(): void {
+    if (this.timer !== undefined) clearTimeout(this.timer);
     this.generation += 1;
     this.active?.cancel();
     this.state = { ...this.state, searching: false };
@@ -160,4 +201,14 @@ function compareMatches(left: TextMatch, right: TextMatch): number {
     left.endLine - right.endLine ||
     left.endColumn - right.endColumn
   );
+}
+
+export function resultId(match: TextMatch): string {
+  return JSON.stringify([
+    match.uri,
+    match.line,
+    match.startColumn,
+    match.endLine,
+    match.endColumn,
+  ]);
 }

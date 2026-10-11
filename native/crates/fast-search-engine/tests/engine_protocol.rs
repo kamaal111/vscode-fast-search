@@ -84,6 +84,17 @@ impl Drop for Engine {
 }
 
 #[test]
+fn flushes_shutdown_response_before_exiting() {
+    for attempt in 0..50 {
+        let mut engine = Engine::start();
+        let request_id = format!("shutdown-{attempt}");
+        engine.send(json!({"type":"shutdown","version":1,"requestId":request_id}));
+        assert_eq!(engine.until("diagnostics")["requestId"], request_id);
+        assert!(engine.child.wait().expect("engine exits").success());
+    }
+}
+
+#[test]
 fn indexes_searches_refreshes_overlays_and_validates_protocol() {
     let first = TempDir::new().expect("first root");
     let second = TempDir::new().expect("second root");

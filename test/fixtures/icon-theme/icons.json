@@ -1,0 +1,8 @@
+{
+  "iconDefinitions": {
+    "pnpm": { "iconPath": "pnpm.svg" },
+    "typescript": { "iconPath": "typescript.svg" }
+  },
+  "fileNames": { "pnpm-workspace.yaml": "pnpm" },
+  "fileExtensions": { "ts": "typescript" }
+}
