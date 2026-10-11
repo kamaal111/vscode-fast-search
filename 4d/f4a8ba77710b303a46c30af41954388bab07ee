@@ -1,0 +1,37 @@
+src/searchView/html.ts
+  s_f1ea403dd0e563::t_57cda822cffae5 51
+media/search.css
+  s_f1ea403dd0e563::t_57cda822cffae5 113-115,124-131
+src/searchView/model.ts
+  s_f1ea403dd0e563::t_a6fa5557ad972b 144-146
+  s_f1ea403dd0e563::t_57cda822cffae5 15,44,81-85,110,157,195
+test/ui/search.spec.ts
+  s_f1ea403dd0e563::t_a6fa5557ad972b 290,530,668-701
+  s_f1ea403dd0e563::t_39482704a8b0c1 702
+test/unit/model.test.ts
+  s_f1ea403dd0e563::t_f7a30d5791d53f 78-86,93-110,118-210
+  s_f1ea403dd0e563::t_a6fa5557ad972b 1,12-13,87-92,111-117
+test/unit/searchView.test.ts
+  s_f1ea403dd0e563::t_a6fa5557ad972b 17-24,28-35,58-60,84-85,447-483
+  s_f1ea403dd0e563::t_31ee1a601c7ed7 376
+test/ui/fixtures.ts
+  s_f1ea403dd0e563::t_57cda822cffae5 55,67,104
+media/search.js
+  s_f1ea403dd0e563::t_57cda822cffae5 5-6,206,211-222
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4df4a8ba77710b303a46c30af41954388bab07ee",
+  "prompts": {},
+  "sessions": {
+    "s_f1ea403dd0e563": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12ce9-0106-7243-ab29-800965661e0d",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Kamaal Farah <kamaal.f1@gmail.com>"
+    }
+  }
+}
