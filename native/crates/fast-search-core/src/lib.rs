@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[path = "../benches/support/filename_budget_tests.rs"]
+mod filename_budget_tests;
+
 use encoding_rs::Encoding;
 use fast_search_index::{
     IndexedPath, Snapshot, bag_contains_requirements, bag_requirements, character_bag,

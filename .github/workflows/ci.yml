@@ -26,5 +26,7 @@ jobs:
       - run: pnpm run format:check
       - run: pnpm run lint:native
       - run: pnpm run benchmark
+        env:
+          FAST_SEARCH_FILENAME_P95_MS: "40"
       - run: pnpm run licenses
       - run: pnpm run package
