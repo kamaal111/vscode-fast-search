@@ -1,0 +1,21 @@
+docs/architecture.md
+  s_3f8b6b42993085::t_6b3d2a965744d5 29
+README.md
+  s_3f8b6b42993085::t_6b3d2a965744d5 3,133,135
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1c2ebf242911691b53cf6e642e2eb057cde76520",
+  "prompts": {},
+  "sessions": {
+    "s_3f8b6b42993085": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12c52-5e1b-7b42-a7d1-b4b7acf77781",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Kamaal Farah <kamaal.f1@gmail.com>"
+    }
+  }
+}
