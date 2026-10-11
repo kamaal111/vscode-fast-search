@@ -1,0 +1,31 @@
+native/crates/fast-search-core/benches/million_paths.rs
+  s_1b4b5a6a8e6b2a::t_9f38cf666f5d41 5-7,9-15,45-48,58,60-61
+native/crates/fast-search-core/benches/support/filename_budget.rs
+  s_1b4b5a6a8e6b2a::t_9f38cf666f5d41 1-6,8-18
+  s_1b4b5a6a8e6b2a::t_82b7a4711fef83 7
+.github/workflows/ci.yml
+  s_1b4b5a6a8e6b2a::t_9f38cf666f5d41 29-30
+native/crates/fast-search-core/benches/support/filename_budget_tests.rs
+  s_1b4b5a6a8e6b2a::t_b622f85f472790 1-51
+README.md
+  s_1b4b5a6a8e6b2a::t_9f38cf666f5d41 35-36
+native/crates/fast-search-core/src/lib.rs
+  s_1b4b5a6a8e6b2a::t_9f38cf666f5d41 1,4
+  s_1b4b5a6a8e6b2a::t_b622f85f472790 2-3
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "aaaadc0bfa92541018eae527cea4d28fcfd12ca0",
+  "prompts": {},
+  "sessions": {
+    "s_1b4b5a6a8e6b2a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12ba7-af7e-70e1-bc45-3dc5718b087f",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Kamaal Farah <kamaal.f1@gmail.com>"
+    }
+  }
+}
