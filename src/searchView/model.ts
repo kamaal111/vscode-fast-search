@@ -23,6 +23,7 @@ export type SearchModelOptions = {
   overlays(): DocumentOverlay[];
   encoding(): string | undefined;
   onChange(state: SearchState): void;
+  onSearch?(fields: Pick<SearchState, "query" | "include" | "exclude">): void;
 };
 
 const initialOptions = {
@@ -87,6 +88,11 @@ export class SearchModel {
       this.emit();
       return;
     }
+    this.config.onSearch?.({
+      query: this.state.query,
+      include: this.state.include,
+      exclude: this.state.exclude,
+    });
     this.state = {
       ...this.state,
       searching: true,

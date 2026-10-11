@@ -189,9 +189,9 @@ test("keeps pagination help in the viewport and dismisses it on result scrolling
   await page.mouse.wheel(0, -220);
   await expect(tooltip).toBeHidden();
   await expectViewportScrollContained(page);
-  await page.getByRole("combobox", { name: "Search", exact: true }).click();
+  await page.getByRole("textbox", { name: "Search", exact: true }).click();
   await expect(
-    page.getByRole("combobox", { name: "Search", exact: true }),
+    page.getByRole("textbox", { name: "Search", exact: true }),
   ).toBeFocused();
   await expectViewportScrollContained(page);
 });
@@ -436,7 +436,7 @@ test("supports keyboard focus, toggle activation, and Enter to search", async ({
 }) => {
   await page.keyboard.press("Tab");
   await expect(
-    page.getByRole("combobox", { name: "Search", exact: true }),
+    page.getByRole("textbox", { name: "Search", exact: true }),
   ).toBeFocused();
   await expect(page.getByRole("tooltip")).toContainText("Press Enter");
   await page.keyboard.press("Tab");
@@ -451,7 +451,7 @@ test("supports keyboard focus, toggle activation, and Enter to search", async ({
     .poll(() => messages.at(-1))
     .toEqual({ type: "toggle", field: "caseSensitive", value: true });
   await page
-    .getByRole("combobox", { name: "Search", exact: true })
+    .getByRole("textbox", { name: "Search", exact: true })
     .fill("fixture");
   await page.keyboard.press("Enter");
   await expect.poll(() => messages.at(-1)).toEqual({ type: "search" });
@@ -463,9 +463,9 @@ test("sends filter updates and cancellation", async ({ page, messages }) => {
     .getByRole("treeitem", { name: /column 14:/ })
     .last()
     .scrollIntoViewIfNeeded();
-  await page.getByRole("combobox", { name: "Search", exact: true }).click();
+  await page.getByRole("textbox", { name: "Search", exact: true }).click();
   await page
-    .getByRole("combobox", { name: "Search", exact: true })
+    .getByRole("textbox", { name: "Search", exact: true })
     .fill("fixture");
   await expect
     .poll(() => messages.at(-1))
@@ -557,7 +557,7 @@ test("shows the remaining pagination batch and clears obsolete result help", asy
   await expect(page.getByRole("tooltip")).toBeVisible();
   await renderState(page, { count: 0 });
   await expect(
-    page.getByRole("combobox", { name: "Search", exact: true }),
+    page.getByRole("textbox", { name: "Search", exact: true }),
   ).toBeFocused();
   await expect(page.getByRole("tooltip")).not.toContainText("Open /workspace");
 });
@@ -622,7 +622,7 @@ test("dismisses a match without opening, updates counts, and restores keyboard f
   await renderState(page, { count: 0 });
   await expect(page.getByRole("treeitem")).toHaveCount(0);
   await expect(
-    page.getByRole("combobox", { name: "Search", exact: true }),
+    page.getByRole("textbox", { name: "Search", exact: true }),
   ).toBeFocused();
 });
 
@@ -664,4 +664,40 @@ test("accepts plain folder filters and explains named-root selection", async ({
   await expect
     .poll(() => messages.at(-1))
     .toEqual({ type: "update", field: "include", value: "./backend/src" });
+});
+
+test("recalls independent field histories with Up and Down and clears after the newest value", async ({
+  page,
+  messages,
+}) => {
+  await renderState(page, {
+    history: {
+      query: ["beta", "alpha"],
+      include: ["src", "docs"],
+      exclude: ["dist", "vendor"],
+    },
+  });
+  for (const [name, field, newest, oldest] of [
+    ["Search", "query", "beta", "alpha"],
+    ["files to include", "include", "src", "docs"],
+    ["files to exclude", "exclude", "dist", "vendor"],
+  ] as const) {
+    const control = page.getByRole("textbox", { name, exact: true });
+    await control.fill("");
+    await control.press("ArrowUp");
+    await expect(control).toHaveValue(newest);
+    await expect
+      .poll(() => messages.at(-1))
+      .toEqual({ type: "update", field, value: newest });
+    await control.press("ArrowUp");
+    await expect(control).toHaveValue(oldest);
+    await control.press("ArrowDown");
+    await expect(control).toHaveValue(newest);
+    await control.press("ArrowDown");
+    await expect(control).toHaveValue("");
+    await expect(control).toBeFocused();
+    await expect
+      .poll(() => messages.at(-1))
+      .toEqual({ type: "update", field, value: "" });
+  }
 });

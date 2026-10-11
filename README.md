@@ -30,6 +30,11 @@ one match or all matches in a file. Counts include matches beyond the current pa
 and decrease as results are dismissed. Removing the final match removes the file
 group. Dismissal never changes files, and running a new search restores results.
 
+In Search, Files to include, and Files to exclude, press Up/Down to recall
+previous values. Each field keeps its 20 most recent distinct values per
+workspace, including searches run while typing, and retains them across VS Code
+restarts. Down past the newest value clears the field.
+
 Use Up/Down and Home/End to navigate visible rows, Left/Right to collapse, expand,
 or move between a file and its matches, and Enter to open a match. Delete or
 Cmd+Backspace dismisses the focused row. Tab reaches its dismiss action. File icons
