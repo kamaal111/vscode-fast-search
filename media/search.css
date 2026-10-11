@@ -108,22 +108,111 @@ input:focus-visible {
   padding: 4px 0 8px;
   overflow-wrap: anywhere;
 }
-.result-heading {
-  font-size: 1em;
-  font-weight: 600;
+.result-heading,
+.result {
+  display: flex;
+  align-items: center;
+  height: 22px;
   line-height: 22px;
-  padding: 0;
+  min-width: 0;
+  gap: 4px;
+  cursor: pointer;
+  overflow: hidden;
+}
+.result-heading {
+  padding-right: 4px;
+}
+.chevron {
+  flex: 0 0 16px;
+  text-align: center;
+  font-size: 16px;
+}
+.file-icon {
+  flex: 0 0 16px;
+  width: 16px;
+  height: 22px;
+}
+.file-icon[hidden] {
+  display: none;
+}
+.file-icon::before {
+  content: "";
+  display: block;
+  width: 16px;
+  height: 22px;
+  line-height: 22px;
+  text-align: center;
+  background-position: center;
+  background-size: 16px;
+  background-repeat: no-repeat;
+}
+.filename {
+  flex: 0 1 auto;
+  min-width: 0;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+.directory {
+  flex: 1 100 auto;
+  min-width: 0;
+  color: var(--vscode-descriptionForeground);
+  font-size: 0.9em;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.match-count {
+  flex: 0 0 auto;
+  font-size: 11px;
+  line-height: 16px;
+  min-width: 18px;
+  text-align: center;
+  padding: 0 5px;
+  border-radius: 11px;
+  color: var(--vscode-badge-foreground, var(--vscode-foreground));
+  background: var(
+    --vscode-badge-background,
+    var(--vscode-button-secondaryBackground)
+  );
+}
+.dismiss-result {
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 18px;
+  line-height: 18px;
+  opacity: 0;
+}
+.result-heading:hover > .dismiss-result,
+.result-group:focus > .result-heading > .dismiss-result,
+.result-heading:focus-within > .dismiss-result,
+.result:hover > .dismiss-result,
+.result:focus-within > .dismiss-result {
+  opacity: 1;
+}
+.dismiss-result:hover {
+  background: var(--vscode-toolbar-hoverBackground);
 }
 .location {
   color: var(--vscode-descriptionForeground);
+  font-size: 0.9em;
 }
 mark {
   color: inherit;
-  background: var(--vscode-editor-findMatchHighlightBackground);
-  border: 1px solid var(--vscode-editor-findMatchHighlightBorder, transparent);
+  background: var(
+    --vscode-searchEditor-findMatchBackground,
+    var(--vscode-editor-findMatchHighlightBackground)
+  );
+  border: 1px solid
+    var(
+      --vscode-searchEditor-findMatchBorder,
+      var(--vscode-editor-findMatchHighlightBorder, transparent)
+    );
 }
 .show-more {
   display: block;
@@ -132,27 +221,33 @@ mark {
 }
 .result {
   position: relative;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  color: inherit;
-  display: block;
   font-family: var(--vscode-editor-font-family);
-  line-height: 22px;
-  padding: 0 0 0 8px;
+  padding: 0 4px 0 20px;
+}
+.match-preview {
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
-  text-align: left;
   text-overflow: ellipsis;
   white-space: pre;
-  width: 100%;
 }
-.result:hover {
+.result:hover,
+.result-heading:hover {
   color: var(--vscode-list-hoverForeground, var(--vscode-foreground));
   background: var(--vscode-list-hoverBackground);
 }
-.result:focus-visible {
+.result:focus,
+.result-group:focus > .result-heading {
   color: var(--vscode-list-focusForeground, var(--vscode-foreground));
   background: var(--vscode-list-focusBackground);
+}
+.result:focus-visible,
+.result-group:focus-visible > .result-heading {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: -1px;
+}
+.result-group:focus {
+  outline: none;
 }
 .sr-only {
   position: absolute;
@@ -190,4 +285,9 @@ mark {
 .vscode-high-contrast .toggles button,
 .vscode-high-contrast-light .toggles button {
   border-color: var(--vscode-contrastBorder);
+}
+
+.vscode-high-contrast .match-count,
+.vscode-high-contrast-light .match-count {
+  border: 1px solid var(--vscode-contrastBorder);
 }

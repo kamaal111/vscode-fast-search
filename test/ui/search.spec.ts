@@ -28,6 +28,28 @@ test("renders a compact sidebar without horizontal overflow", async ({
   await expect(page).toHaveScreenshot("results.png");
 });
 
+test("aligns indented source previews with file icons and opens original columns", async ({
+  page,
+  messages,
+}) => {
+  await renderState(page, { indent: " \t " });
+  const preview = page.locator(".match-preview").first();
+  await expect(preview).toHaveText('let value = "searchable fixture"');
+  await expect(preview.locator("mark")).toHaveText("searchable fixture");
+  const iconBounds = await page.locator(".file-icon").boundingBox();
+  const previewBounds = await preview.boundingBox();
+  expect(previewBounds?.x).toBe(iconBounds?.x);
+  await preview.click();
+  expect(messages).toContainEqual({
+    type: "open",
+    uri: "file:///workspace/src/Result.swift",
+    line: 1,
+    column: 16,
+    endLine: 1,
+    endColumn: 34,
+  });
+});
+
 test("shows hover help inside the viewport and dismisses it with Escape", async ({
   page,
 }) => {
@@ -132,10 +154,12 @@ test("navigates results with arrows and opens the selected match", async ({
 
 test("renders empty, loading, and error states", async ({ page }) => {
   await renderState(page, { count: 0 });
-  await expect(page.getByRole("status")).toHaveText("0 results");
+  await expect(page.getByRole("status")).toHaveText("0 results in 0 files");
   await expect(page).toHaveScreenshot("empty.png");
   await renderState(page, { count: 0, searching: true });
-  await expect(page.getByRole("status")).toHaveText("Searching… 0 results");
+  await expect(page.getByRole("status")).toHaveText(
+    "Searching… 0 results in 0 files",
+  );
   await expect(page).toHaveScreenshot("loading.png");
   await renderState(page, { count: 0, error: "Invalid regular expression" });
   await expect(page.getByRole("status")).toHaveText(
@@ -157,10 +181,10 @@ test("shows the remaining pagination batch and clears obsolete result help", asy
 }) => {
   await renderState(page, { count: 301 });
   await expect(page.getByRole("treeitem", { name: /column 14:/ })).toHaveCount(
-    300,
+    299,
   );
   const more = page.getByRole("button", {
-    name: "Show next 1 results",
+    name: "Show next 2 rows",
     exact: true,
   });
   await more.click();
@@ -173,5 +197,96 @@ test("shows the remaining pagination batch and clears obsolete result help", asy
   await page.keyboard.press("ArrowUp");
   await expect(page.getByRole("tooltip")).toBeVisible();
   await renderState(page, { count: 0 });
-  await expect(page.getByRole("tooltip")).toBeHidden();
+  await expect(
+    page.getByRole("combobox", { name: "Search", exact: true }),
+  ).toBeFocused();
+  await expect(page.getByRole("tooltip")).not.toContainText("Open /workspace");
+});
+
+test("collapses files, retains counts during streaming, and resets on a new search", async ({
+  page,
+}) => {
+  await renderState(page, { count: 301 });
+  const file = page.getByRole("treeitem", { name: /^Result.swift,/ });
+  await expect(file).toHaveAccessibleName("Result.swift, src, 301 matches");
+  await file.focus();
+  await page.keyboard.press("ArrowLeft");
+  await expect(file).toHaveAttribute("aria-expanded", "false");
+  await expect(page.getByRole("treeitem", { name: /column 14:/ })).toHaveCount(
+    0,
+  );
+  await expect(page.getByRole("button", { name: /Show next/ })).toHaveCount(0);
+  await renderState(page, { count: 302, searching: true });
+  await expect(file).toHaveAttribute("aria-expanded", "false");
+  await expect(file).toBeFocused();
+  await expect(file).toHaveAccessibleName("Result.swift, src, 302 matches");
+  await renderState(page, { count: 2, session: 2 });
+  await expect(file).toHaveAttribute("aria-expanded", "true");
+  await expect(page.getByRole("treeitem", { name: /column 14:/ })).toHaveCount(
+    2,
+  );
+});
+
+test("dismisses a match without opening, updates counts, and restores keyboard focus", async ({
+  page,
+  messages,
+}) => {
+  await renderState(page);
+  await page
+    .getByRole("button", {
+      name: "Dismiss match at line 2, column 14 in Result.swift",
+      exact: true,
+    })
+    .click();
+  await expect
+    .poll(() => messages.at(-1))
+    .toEqual({
+      type: "dismissMatch",
+      session: 1,
+      id: JSON.stringify(["file:///workspace/src/Result.swift", 1, 13, 1, 31]),
+    });
+  expect(messages).toHaveLength(1);
+  await renderState(page, { count: 1, firstLine: 2 });
+  await expect(
+    page.getByRole("treeitem", { name: /^Result.swift,/ }),
+  ).toHaveAccessibleName("Result.swift, src, 1 match");
+  await expect(page.getByRole("status")).toHaveText("1 result in 1 file");
+  await page.getByRole("treeitem", { name: /column 14:/ }).focus();
+  await page.keyboard.press("Delete");
+  await expect
+    .poll(() => messages.at(-1))
+    .toEqual({
+      type: "dismissMatch",
+      session: 1,
+      id: JSON.stringify(["file:///workspace/src/Result.swift", 2, 13, 2, 31]),
+    });
+  await renderState(page, { count: 0 });
+  await expect(page.getByRole("treeitem")).toHaveCount(0);
+  await expect(
+    page.getByRole("combobox", { name: "Search", exact: true }),
+  ).toBeFocused();
+});
+
+test("dismisses an entire file using its inline action without opening it", async ({
+  page,
+  messages,
+}) => {
+  await renderState(page);
+  await page
+    .getByRole("button", {
+      name: "Dismiss results in Result.swift",
+      exact: true,
+    })
+    .click();
+  await expect
+    .poll(() => messages.at(-1))
+    .toEqual({
+      type: "dismissFile",
+      session: 1,
+      uri: "file:///workspace/src/Result.swift",
+    });
+  expect(messages).toHaveLength(1);
+  await renderState(page, { count: 0 });
+  await expect(page.getByRole("treeitem")).toHaveCount(0);
+  await expect(page.getByRole("status")).toHaveText("0 results in 0 files");
 });

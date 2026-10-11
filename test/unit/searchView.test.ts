@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { JSDOM } from "jsdom";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { searchViewHtml } from "../../src/searchView/html.js";
+import type { TextMatch } from "../../src/engine/protocol.js";
 
 let dom: JSDOM;
 const postMessage = vi.fn();
@@ -13,8 +14,13 @@ function element(selector: string): HTMLElement {
   return found;
 }
 
-function sendState(count = 1): void {
+function sendState(
+  count = 1,
+  session = 1,
+  matchOverrides: Partial<TextMatch> = {},
+): void {
   const matches = Array.from({ length: count }, (_, line) => ({
+    id: `match-${line}`,
     uri: "file:///workspace/src/example.ts",
     line,
     startColumn: 2,
@@ -23,12 +29,14 @@ function sendState(count = 1): void {
     preview: "a match here",
     previewStart: 2,
     previewEnd: 7,
+    ...matchOverrides,
   }));
   dom.window.dispatchEvent(
     new dom.window.MessageEvent("message", {
       data: {
         type: "state",
         state: {
+          session,
           query: "match",
           include: "",
           exclude: "",
@@ -41,7 +49,20 @@ function sendState(count = 1): void {
             regex: false,
           },
         },
-        groups: [{ uri: "file:///workspace/src/example.ts", matches }],
+        groups:
+          count === 0
+            ? []
+            : [
+                {
+                  uri: "file:///workspace/src/example.ts",
+                  filename: "example.ts",
+                  directory: "src",
+                  path: "/workspace/src/example.ts",
+                  icon: "file-icon-1",
+                  count,
+                  matches,
+                },
+              ],
         history: [],
       },
     }),
@@ -64,6 +85,7 @@ beforeEach(() => {
   );
   Object.defineProperty(dom.window, "postMessageSpy", { value: postMessage });
   dom.window.eval(readFileSync("media/search.js", "utf8"));
+  postMessage.mockClear();
 });
 afterEach(() => {
   vi.useRealTimers();
@@ -78,6 +100,40 @@ it("updates the search controls from the extension state", () => {
   expect(
     element("[data-toggle=caseSensitive]").getAttribute("aria-pressed"),
   ).toBe("true");
+});
+
+it.each(["    ", "\t\t", " \t "])(
+  "removes source indentation %j while preserving highlights and navigation",
+  (indent) => {
+    sendState(1, 1, {
+      preview: `${indent}a match here`,
+      previewStart: indent.length + 2,
+      previewEnd: indent.length + 7,
+      startColumn: indent.length + 2,
+      endColumn: indent.length + 7,
+    });
+    expect(element(".match-preview").textContent).toBe("a match here");
+    expect(element(".match-preview mark").textContent).toBe("match");
+    element(".result").click();
+    expect(postMessage).toHaveBeenLastCalledWith({
+      type: "open",
+      uri: "file:///workspace/src/example.ts",
+      line: 0,
+      column: indent.length + 2,
+      endLine: 0,
+      endColumn: indent.length + 7,
+    });
+  },
+);
+
+it("preserves whitespace that is part of the searched match", () => {
+  sendState(1, 1, {
+    preview: "    match here",
+    previewStart: 2,
+    previewEnd: 9,
+  });
+  expect(element(".match-preview").textContent).toBe("  match here");
+  expect(element(".match-preview mark").textContent).toBe("  match");
 });
 
 it("names the embedded options and describes every form control", () => {
@@ -194,22 +250,22 @@ it("explains result actions and clears help when the results are replaced", () =
     endColumn: 5,
   });
   sendState(0);
-  expect(element("[role=tooltip]").hidden).toBe(true);
+  expect(element("#query")).toBe(dom.window.document.activeElement);
   expect(dom.window.document.querySelector(".result")).toBeNull();
 });
 
 it("explains and displays the remaining pagination batch", () => {
   sendState(301);
-  expect(dom.window.document.querySelectorAll(".result")).toHaveLength(300);
+  expect(dom.window.document.querySelectorAll(".result")).toHaveLength(299);
   const more = element(".show-more");
   more.focus();
   expect(element("[role=tooltip]").textContent).toContain(
-    "Display the next 1 search results.",
+    "Display the next 2 file and match rows.",
   );
   more.click();
   expect(dom.window.document.querySelectorAll(".result")).toHaveLength(301);
   expect(dom.window.document.querySelector(".show-more")).toBeNull();
-  expect(element("[role=tooltip]").hidden).toBe(true);
+  expect(dom.window.document.activeElement).toBe(element(".result:last-child"));
 });
 
 it("cancels pending hover help and shows it again after reentering", async () => {
@@ -267,4 +323,83 @@ it("does not submit while confirming IME composition", () => {
     }),
   );
   expect(postMessage).not.toHaveBeenCalled();
+});
+
+it("renders filename, relative directory, themed icon and the full match count", () => {
+  sendState(301);
+  expect(element(".filename").textContent).toBe("example.ts");
+  expect(element(".directory").textContent).toBe("src");
+  expect(element(".match-count").textContent).toBe("301");
+  expect(element(".file-icon").classList.contains("file-icon-1")).toBe(true);
+  expect(element(".result-heading").title).toBe("/workspace/src/example.ts");
+  expect(element("#status").textContent).toBe("301 results in 1 file");
+});
+
+it("preserves collapse during batches and resets it for a new search session", () => {
+  sendState(2);
+  element(".result-heading").click();
+  expect(element(".result-group").getAttribute("aria-expanded")).toBe("false");
+  expect(dom.window.document.querySelectorAll(".result")).toHaveLength(0);
+  sendState(3);
+  expect(element(".result-group").getAttribute("aria-expanded")).toBe("false");
+  expect(element(".match-count").textContent).toBe("3");
+  sendState(3, 2);
+  expect(element(".result-group").getAttribute("aria-expanded")).toBe("true");
+  expect(dom.window.document.querySelectorAll(".result")).toHaveLength(3);
+});
+
+it("sends session-scoped dismissal without opening or collapsing", () => {
+  sendState(2);
+  element(".result > .dismiss-result").click();
+  expect(postMessage).toHaveBeenCalledExactlyOnceWith({
+    type: "dismissMatch",
+    session: 1,
+    id: "match-0",
+  });
+  expect(element(".result-group").getAttribute("aria-expanded")).toBe("true");
+  postMessage.mockClear();
+  element(".result-heading > .dismiss-result").click();
+  expect(postMessage).toHaveBeenCalledExactlyOnceWith({
+    type: "dismissFile",
+    session: 1,
+    uri: "file:///workspace/src/example.ts",
+  });
+});
+
+it("navigates file and match rows and preserves focused matches across batches", () => {
+  sendState(2);
+  element(".result-group").focus();
+  element(".result-group").dispatchEvent(
+    new dom.window.KeyboardEvent("keydown", {
+      key: "ArrowRight",
+      bubbles: true,
+    }),
+  );
+  expect(dom.window.document.activeElement).toBe(element(".result"));
+  sendState(3);
+  expect(dom.window.document.activeElement).toBe(element(".result"));
+  element(".result").dispatchEvent(
+    new dom.window.KeyboardEvent("keydown", {
+      key: "ArrowLeft",
+      bubbles: true,
+    }),
+  );
+  expect(dom.window.document.activeElement).toBe(element(".result-group"));
+  element(".result-group").dispatchEvent(
+    new dom.window.KeyboardEvent("keydown", {
+      key: "ArrowLeft",
+      bubbles: true,
+    }),
+  );
+  expect(element(".result-group").getAttribute("aria-expanded")).toBe("false");
+});
+
+it("keeps pagination bounded when the result set contains only file headings", () => {
+  sendState(1000);
+  element(".result-heading").click();
+  expect(
+    dom.window.document.querySelectorAll('[role="treeitem"]'),
+  ).toHaveLength(1);
+  expect(dom.window.document.querySelector(".show-more")).toBeNull();
+  expect(element(".match-count").textContent).toBe("1000");
 });

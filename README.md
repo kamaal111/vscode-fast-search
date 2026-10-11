@@ -5,7 +5,7 @@ Fast Search is a standalone, local-only VS Code extension for low-latency filena
 ## Features and support
 
 - **Fast Search: Open File** (`fastSearch.openFile`) provides fuzzy, whitespace-atom filename search. Append `:line` or `:line:column` to jump to a location.
-- **Fast Search: Find in Files** (`fastSearch.findInFiles`) opens a dedicated activity-bar view with literal/regex, case, whole-word, include/exclude, progress, cancellation, and grouped results.
+- **Fast Search: Find in Files** (`fastSearch.findInFiles`) opens a dedicated activity-bar view with literal/regex, case, whole-word, include/exclude, progress, cancellation, and collapsible file groups. File headings show the filename, a smaller workspace-relative directory, the remaining match count, and icons from your installed file-icon theme.
 - **Fast Search: Rebuild Index** (`fastSearch.rebuildIndex`) atomically replaces the current snapshots.
 - **Fast Search: Show Diagnostics** (`fastSearch.showDiagnostics`) shows engine readiness, indexed-file count, roots, generation, and failures.
 
@@ -23,6 +23,20 @@ Build or download the VSIX, then run **Extensions: Install from VSIX…**. To bu
 ```
 
 The filename picker fuzzy-matches the normalized full relative path and ranks filename prefixes, short paths, and files near the active editor more highly. Empty input includes open editors and recent choices; selecting previews, Enter pins, and the split button opens beside. The search view accepts comma-separated include/exclude globs, retains workspace-local query history, and renders large result sets in bounded windows. Text search supports literal and regular-expression modes, smart-case, explicit case sensitivity, whole words, multiline expressions, LF/CRLF, UTF-8 BOMs, configured `files.encoding`, binary rejection, and dirty or untitled editor overlays. Search always honors resource-scoped `files.exclude` and `search.exclude`, including conditional sibling rules; `search.exclude` overrides duplicate patterns from `files.exclude`. Ignore files follow `search.useIgnoreFiles` (enabled by default), `search.useGlobalIgnoreFiles`, and `search.useParentIgnoreFiles` (both disabled by default). Global and parent ignores require `search.useIgnoreFiles`. Change these standard VS Code settings to include ignored files; the view's explicit exclusions remain additional filters.
+
+Search results follow the native file-list layout. Click a file heading to collapse
+or expand its matches. Hover or focus a row to reveal its dismiss action; dismiss
+one match or all matches in a file. Counts include matches beyond the current page
+and decrease as results are dismissed. Removing the final match removes the file
+group. Dismissal never changes files, and running a new search restores results.
+
+Use Up/Down and Home/End to navigate visible rows, Left/Right to collapse, expand,
+or move between a file and its matches, and Enter to open a match. Delete or
+Cmd+Backspace dismisses the focused row. Tab reaches its dismiss action. File icons
+follow `workbench.iconTheme`, including image and font themes, and update when the
+theme changes. Selecting no icon theme hides icons; pnpm and TypeScript logos
+appear when the selected theme supplies them. `search.showLineNumbers` controls
+line labels. Large result sets load in batches of 300 visible file/match rows.
 
 Settings:
 
@@ -118,7 +132,7 @@ Packaging checks dependency licenses and the generated third-party notices, buil
 
 - Run **Fast Search: Open File** and type `Result`. Expect `src/Result.swift` (the picker shows the filename with its directory). Move the active selection to preview the file, press Enter to pin it, and reopen the picker to try the **Open to the Side** button. Searching `Result:2` and accepting the result should navigate to line 2.
 - Run **Fast Search: Find in Files** and search for `searchable fixture`. Expect a highlighted match on line 2 of `src/Result.swift`; selecting the result should open the matching location. Check the literal/regex, case, whole-word, and include/exclude controls. For example, including `**/*.swift` should retain this match, while excluding `**/*.swift` should remove it.
-- Switch between light and dark themes and check that controls, text, and result highlights remain readable. Use the keyboard to navigate the picker and Tab through the search controls, checking visible focus and result navigation.
+- Switch between light and dark themes and check that controls, text, and result highlights remain readable. Select Seti and another installed file-icon theme, then disable file icons; verify that result icons follow your selection. Collapse a file, dismiss a match, and dismiss its remaining results; verify counts and focus, then rerun the search to restore results. Use the keyboard to navigate the picker and Tab through the search controls, checking visible focus and result navigation.
 - Run **Fast Search: Rebuild Index**, then repeat the searches. Run **Fast Search: Show Diagnostics** to inspect engine readiness and the indexed-file count. If startup fails or results stay stale, inspect the reported state and stderr there.
 - Open a larger trusted local workspace to observe indexing progress and try searching during the initial scan; the tiny fixture may finish too quickly to show progress. Search its own filenames and contents, since the fixture examples only apply to the fixture folder.
 
@@ -130,6 +144,6 @@ After editing the extension or native engine, rerun `pnpm run package`, install 
 
 All indexing and search execute locally. There is no telemetry or network service. Paths and contents are never transmitted; only paths and compact index metadata live in memory, and file contents are not persisted.
 
-Original code is MIT licensed. Unmodified `nucleo-matcher` is MPL-2.0; ripgrep search components and other dependencies retain their permissive licenses. See `THIRD_PARTY_NOTICES.md`. If MPL-covered source is modified, the modified covered files must remain available under MPL-2.0.
+Original code is MIT licensed. Unmodified `nucleo-matcher` is MPL-2.0; ripgrep search components and other dependencies retain their permissive licenses. See `THIRD_PARTY_NOTICES.md` and `THIRD_PARTY_NOTICES_JS.md`. If MPL-covered source is modified, the modified covered files must remain available under MPL-2.0.
 
 Contributions should preserve dependency direction, add behavior at its owning boundary, keep protocol changes mirrored and versioned, and put each semantic behavior in one integration suite.

@@ -17,8 +17,9 @@ export function searchViewHtml({
   <title>Fast Search</title>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${cspSource}; script-src 'nonce-${nonce}'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${cspSource} 'nonce-${nonce}'; img-src ${cspSource}; font-src ${cspSource}; script-src 'nonce-${nonce}'">
   <link rel="stylesheet" href="${styleUri}">
+  <style nonce="${nonce}" id="file-icon-theme"></style>
 </head>
 <body>
   <form id="search-form">
@@ -49,6 +50,7 @@ export function searchViewHtml({
   <span class="sr-only" id="exclude-help">Skip files matching these comma-separated glob patterns.</span>
   <div id="status" role="status" aria-live="polite"></div>
   <div id="results" role="tree" aria-label="Search results"></div>
+  <div id="result-pagination"></div>
   <div id="control-tooltip" role="tooltip" hidden></div>
   <script nonce="${nonce}" src="${scriptUri}"></script>
 </body>
