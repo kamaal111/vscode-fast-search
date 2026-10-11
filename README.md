@@ -49,7 +49,7 @@ VS Code composition root
 
 ## Development
 
-Prerequisites are macOS, Node.js 26.8.2+, pnpm, Rust 1.98+, Xcode command-line tools, `cargo-deny`, `cargo-about`, and `@vscode/vsce` from the lockfile.
+Prerequisites are macOS, Node.js 26+, pnpm, Rust 1.98+, Xcode command-line tools, `cargo-deny`, `cargo-about`, and `@vscode/vsce` from the lockfile.
 
 The repository pins pnpm 12.4.1. Install the license tools with `cargo install cargo-deny --locked` and `cargo install cargo-about --locked --features cli` if they are not already available.
 
