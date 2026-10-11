@@ -1,0 +1,56 @@
+native/crates/fast-search-index/Cargo.toml
+  s_1bed0f09fbc993::t_713abbda817fb8 9
+src/configuration/configuration.ts
+  s_1bed0f09fbc993::t_713abbda817fb8 2-4,6,21,23-24,28-44,46,51-58,81-84
+  s_1bed0f09fbc993::t_f85ee3ed5c39e9 5,45
+native/crates/fast-search-engine/tests/engine_protocol.rs
+  s_1bed0f09fbc993::t_63ed9988334a8a 314,317-327,386,392,398,404
+  s_1bed0f09fbc993::t_91d7061c231f0c 292-293,295,297,309-312,316,329-330,332,334-335,337,349-351,353,355-356,358,383-384,388-390,394-396,400-402,406-408,410,412-431
+  s_1bed0f09fbc993::t_713abbda817fb8 126,171,176,180,187,193,200,211,218,220,261,268
+  s_1bed0f09fbc993::t_74a9e14b025d5f 19-21,23,274-291,294,296,298-308,313,315,328,331,333,336,338-348,352,354,357,359-382,385,387,391,393,397,399,403,405,409,411
+src/engine/processClient.ts
+  s_1bed0f09fbc993::t_713abbda817fb8 45-48
+src/searchView/provider.ts
+  s_1bed0f09fbc993::t_713abbda817fb8 16,210
+src/engine/protocol.ts
+  s_1bed0f09fbc993::t_713abbda817fb8 4,7,10-13
+native/crates/fast-search-index/src/lib.rs
+  s_1bed0f09fbc993::t_63ed9988334a8a 420-426
+  s_1bed0f09fbc993::t_713abbda817fb8 1-2,21,24-27,288,301-306,308,310-315,317,340-342,365,369-371,379-391,393-402,404-409,413-419,427-436
+  s_1bed0f09fbc993::t_91d7061c231f0c 364,392,410-412
+  s_1bed0f09fbc993::t_505de373368838 307,316,403,437
+test/ui/search.spec.ts
+  s_1bed0f09fbc993::t_713abbda817fb8 92,110,112
+  s_1bed0f09fbc993::t_63c8d749608f77 111
+media/search.css
+  s_1bed0f09fbc993::t_cb3d62cb5d1ba6 26
+native/crates/fast-search-engine/src/main.rs
+  s_1bed0f09fbc993::t_713abbda817fb8 107-112,200
+native/crates/fast-search-protocol/src/lib.rs
+  s_1bed0f09fbc993::t_713abbda817fb8 13-19,26,32-39
+README.md
+  s_1bed0f09fbc993::t_713abbda817fb8 8,25
+test/unit/searchView.test.ts
+  s_1bed0f09fbc993::t_91d7061c231f0c 76
+  s_1bed0f09fbc993::t_bee77a414185c7 73-75,77-79
+native/Cargo.lock
+  s_1bed0f09fbc993::t_27b3ca6f6b28fc 141
+test/unit/configuration.test.ts
+  s_1bed0f09fbc993::t_c5c670ddc2b35b 1-66
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1d20656291b8c77b6899ac2b29538cf69e0fec80",
+  "prompts": {},
+  "sessions": {
+    "s_1bed0f09fbc993": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12c4e-80ee-7503-8af3-cefd8bf0cf0e",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Kamaal Farah <kamaal.f1@gmail.com>"
+    }
+  }
+}
