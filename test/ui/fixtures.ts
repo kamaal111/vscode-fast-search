@@ -56,6 +56,7 @@ type RenderOptions = {
   session?: number;
   firstLine?: number;
   indent?: string;
+  fileCount?: number;
 };
 export async function renderState(
   page: Page,
@@ -66,20 +67,32 @@ export async function renderState(
     session = 1,
     firstLine = 1,
     indent = "",
+    fileCount = 1,
   }: RenderOptions = {},
 ): Promise<void> {
-  const uri = "file:///workspace/src/Result.swift";
-  const matches: TextMatch[] = Array.from({ length: count }, (_, line) => ({
-    uri,
-    rootId: "workspace",
-    line: line + firstLine,
-    startColumn: indent.length + 13,
-    endLine: line + firstLine,
-    endColumn: indent.length + 31,
-    preview: `${indent}let value = "searchable fixture"`,
-    previewStart: indent.length + 13,
-    previewEnd: indent.length + 31,
-  }));
+  const files = Array.from(
+    { length: Math.min(fileCount, count) },
+    (_, index) => {
+      const filename =
+        index === 0 ? "Result.swift" : `Result${index + 1}.swift`;
+      return { filename, uri: `file:///workspace/src/${filename}` };
+    },
+  );
+  const matches: TextMatch[] = Array.from({ length: count }, (_, line) => {
+    const file = files[Math.floor((line * files.length) / count)];
+    if (file === undefined) throw new Error("Missing result fixture file");
+    return {
+      uri: file.uri,
+      rootId: "workspace",
+      line: line + firstLine,
+      startColumn: indent.length + 13,
+      endLine: line + firstLine,
+      endColumn: indent.length + 31,
+      preview: `${indent}let value = "searchable fixture"`,
+      previewStart: indent.length + 13,
+      previewEnd: indent.length + 31,
+    };
+  });
   const state: SearchState = {
     session,
     query: "searchable fixture",
@@ -112,29 +125,27 @@ export async function renderState(
     {
       type: "state",
       state,
-      groups:
-        matches.length === 0
-          ? []
-          : [
-              {
-                uri,
-                filename: "Result.swift",
-                directory: "src",
-                path: "/workspace/src/Result.swift",
-                icon: "file-icon-0",
-                count: matches.length,
-                matches: matches.map((match) => ({
-                  ...match,
-                  id: JSON.stringify([
-                    match.uri,
-                    match.line,
-                    match.startColumn,
-                    match.endLine,
-                    match.endColumn,
-                  ]),
-                })),
-              },
-            ],
+      groups: files.map(({ uri, filename }) => {
+        const fileMatches = matches.filter((match) => match.uri === uri);
+        return {
+          uri,
+          filename,
+          directory: "src",
+          path: `/workspace/src/${filename}`,
+          icon: "file-icon-0",
+          count: fileMatches.length,
+          matches: fileMatches.map((match) => ({
+            ...match,
+            id: JSON.stringify([
+              match.uri,
+              match.line,
+              match.startColumn,
+              match.endLine,
+              match.endColumn,
+            ]),
+          })),
+        };
+      }),
       history: [],
     },
   );

@@ -16,3 +16,11 @@ pub fn filename_budget(value: Option<&str>) -> Result<Duration, &'static str> {
 pub fn within_budget(measured: Duration, budget: Duration) -> bool {
     measured <= budget
 }
+
+pub fn filename_p95(samples: &mut [Duration]) -> Option<Duration> {
+    if samples.is_empty() {
+        return None;
+    }
+    samples.sort_unstable();
+    Some(samples[samples.len() - samples.len() / 20 - 1])
+}

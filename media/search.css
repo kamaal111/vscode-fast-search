@@ -4,16 +4,25 @@
 * {
   box-sizing: border-box;
 }
+html,
 body {
+  height: 100%;
+  overflow: hidden;
+}
+body {
+  display: flex;
+  flex-direction: column;
   margin: 0;
+  padding: 0;
   color: var(--vscode-foreground);
   background: var(--vscode-sideBar-background);
   font: var(--vscode-font-size) / 1.4 var(--vscode-font-family);
 }
 form {
+  flex-shrink: 0;
   display: grid;
   gap: 4px;
-  padding: 6px 0;
+  padding: 6px 20px;
 }
 form > label {
   font-size: 11px;
@@ -101,12 +110,21 @@ input:focus-visible {
   background: var(--vscode-toolbar-hoverBackground);
 }
 #status {
+  flex-shrink: 0;
   color: var(
     --vscode-search-resultsInfoForeground,
     var(--vscode-descriptionForeground)
   );
-  padding: 4px 0 8px;
+  padding: 4px 20px 8px;
   overflow-wrap: anywhere;
+}
+#results-scroll {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
 }
 .result-heading,
 .result {
@@ -214,6 +232,9 @@ mark {
       var(--vscode-editor-findMatchHighlightBorder, transparent)
     );
 }
+#result-pagination {
+  padding-inline: 20px;
+}
 .show-more {
   display: block;
   margin: 8px 0;
@@ -251,6 +272,8 @@ mark {
 }
 .sr-only {
   position: absolute;
+  top: 0;
+  left: 0;
   width: 1px;
   height: 1px;
   padding: 0;

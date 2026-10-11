@@ -25,11 +25,17 @@ jobs:
       - run: pnpm run typecheck
       - run: pnpm run format:check
       - run: pnpm run lint:native
-      - run: pnpm run benchmark
-        env:
-          FAST_SEARCH_FILENAME_P95_MS: "40"
       - run: pnpm run licenses
       - run: pnpm run package
+  benchmark:
+    runs-on: macos-15
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo bench --manifest-path native/Cargo.toml -p fast-search-core
+        env:
+          FAST_SEARCH_FILENAME_P95_MS: "40"
   ui:
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 10

@@ -265,7 +265,29 @@ it("explains and displays the remaining pagination batch", () => {
   more.click();
   expect(dom.window.document.querySelectorAll(".result")).toHaveLength(301);
   expect(dom.window.document.querySelector(".show-more")).toBeNull();
-  expect(dom.window.document.activeElement).toBe(element(".result:last-child"));
+  expect(dom.window.document.activeElement).toBe(
+    dom.window.document.querySelectorAll(".result")[299],
+  );
+});
+
+it("focuses the first newly revealed match in each pagination batch", () => {
+  sendState(1000);
+  for (const firstNewMatch of [299, 599, 899]) {
+    element(".show-more").focus();
+    element(".show-more").click();
+    expect(dom.window.document.activeElement).toBe(
+      dom.window.document.querySelectorAll(".result")[firstNewMatch],
+    );
+  }
+  expect(dom.window.document.querySelectorAll(".result")).toHaveLength(1000);
+  expect(dom.window.document.querySelector(".show-more")).toBeNull();
+});
+
+it("restores pagination focus when same-session results stream in", () => {
+  sendState(1000);
+  element(".show-more").focus();
+  sendState(1001);
+  expect(dom.window.document.activeElement).toBe(element(".show-more"));
 });
 
 it("cancels pending hover help and shows it again after reentering", async () => {
