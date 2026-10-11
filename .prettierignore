@@ -8,3 +8,6 @@ node_modules/
 about.hbs
 pnpm-lock.yaml
 THIRD_PARTY_NOTICES.md
+
+playwright-report/
+test-results/

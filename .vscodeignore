@@ -16,3 +16,7 @@ pnpm-workspace.yaml
 dist-test/**
 .vscode-test/**
 vscode-fast-search-*.vsix
+
+playwright.config.mts
+playwright-report/**
+test-results/**

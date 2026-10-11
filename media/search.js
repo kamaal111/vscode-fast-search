@@ -4,6 +4,130 @@ const include = document.querySelector("#include");
 const exclude = document.querySelector("#exclude");
 const status = document.querySelector("#status");
 const results = document.querySelector("#results");
+const tooltip = document.querySelector("#control-tooltip");
+let helpTarget;
+let showTimer;
+let hideTimer;
+let keyboardHelp = false;
+let pointerFocus = false;
+
+function hideHelp() {
+  clearTimeout(showTimer);
+  clearTimeout(hideTimer);
+  tooltip.hidden = true;
+  tooltip.textContent = "";
+  helpTarget = undefined;
+  keyboardHelp = false;
+}
+
+function positionHelp() {
+  if (helpTarget === undefined || tooltip.hidden) return;
+  const anchor = helpTarget.getBoundingClientRect();
+  const bounds = tooltip.getBoundingClientRect();
+  const margin = 4;
+  const left = Math.max(
+    margin,
+    Math.min(anchor.left, window.innerWidth - bounds.width - margin),
+  );
+  const below = anchor.bottom + margin;
+  const top =
+    below + bounds.height <= window.innerHeight - margin
+      ? below
+      : Math.max(margin, anchor.top - bounds.height - margin);
+  tooltip.style.left = `${left}px`;
+  tooltip.style.top = `${top}px`;
+}
+
+function showHelp(target, fromKeyboard = false) {
+  const description = document.getElementById(target.dataset.help);
+  if (description === null) return;
+  helpTarget = target;
+  keyboardHelp = fromKeyboard;
+  const name =
+    target.getAttribute("aria-label") ??
+    target.labels?.[0]?.textContent ??
+    target.textContent;
+  tooltip.textContent = `${name.trim()} — ${description.textContent}`;
+  tooltip.hidden = false;
+  positionHelp();
+}
+
+function helpControl(target) {
+  return target instanceof Element ? target.closest("[data-help]") : null;
+}
+
+document.addEventListener("mouseover", (event) => {
+  if (tooltip.contains(event.target)) {
+    clearTimeout(hideTimer);
+    return;
+  }
+  const target = helpControl(event.target);
+  if (target === null) return;
+  if (target === helpTarget) {
+    clearTimeout(hideTimer);
+    if (!tooltip.hidden) return;
+    clearTimeout(showTimer);
+    showTimer = setTimeout(() => showHelp(target), 300);
+    return;
+  }
+  hideHelp();
+  helpTarget = target;
+  showTimer = setTimeout(() => showHelp(target), 300);
+});
+document.addEventListener("mouseout", (event) => {
+  const target = helpControl(event.target);
+  if (target !== helpTarget && !tooltip.contains(event.target)) return;
+  if (
+    event.relatedTarget instanceof Node &&
+    (helpTarget?.contains(event.relatedTarget) ||
+      tooltip.contains(event.relatedTarget))
+  )
+    return;
+  clearTimeout(showTimer);
+  hideTimer = setTimeout(hideHelp, 100);
+});
+document.addEventListener("focusin", (event) => {
+  hideHelp();
+  const target = helpControl(event.target);
+  if (target !== null && !pointerFocus) showHelp(target, true);
+});
+document.addEventListener("focusout", hideHelp);
+document.addEventListener("pointermove", () => {
+  if (keyboardHelp) hideHelp();
+});
+document.addEventListener("pointerdown", () => {
+  pointerFocus = true;
+  hideHelp();
+});
+document.addEventListener(
+  "keydown",
+  (event) => {
+    pointerFocus = false;
+    if (event.key === "Escape") hideHelp();
+  },
+  true,
+);
+window.addEventListener("resize", hideHelp);
+document.addEventListener(
+  "scroll",
+  (event) => {
+    if (tooltip.contains(event.target)) return;
+    if (keyboardHelp && helpTarget === document.activeElement) positionHelp();
+    else hideHelp();
+  },
+  true,
+);
+
+function describeControl(control, id, description) {
+  const help = document.createElement("span");
+  help.id = id;
+  help.className = "sr-only";
+  help.textContent = description;
+  control.dataset.help = id;
+  control.setAttribute("aria-describedby", id);
+  control.append(help);
+}
+
 const pageSize = 300;
 let visibleMatches = pageSize;
 let previousCount = 0;
@@ -15,7 +139,19 @@ for (const [element, field] of [
   element.addEventListener("input", () =>
     vscode.postMessage({ type: "update", field, value: element.value }),
   );
-document.querySelector("#search-form").addEventListener("submit", (event) => {
+const form = document.querySelector("#search-form");
+form.addEventListener("keydown", (event) => {
+  if (
+    event.key === "Enter" &&
+    !event.isComposing &&
+    event.target instanceof HTMLInputElement &&
+    event.target.type !== "checkbox"
+  ) {
+    event.preventDefault();
+    form.requestSubmit();
+  }
+});
+form.addEventListener("submit", (event) => {
   event.preventDefault();
   vscode.postMessage({ type: "search" });
 });
@@ -84,6 +220,12 @@ window.addEventListener("message", ({ data }) => {
     for (const match of group.matches.slice(0, visibleMatches - rendered)) {
       const row = document.createElement("button");
       row.className = "result";
+      row.type = "button";
+      const path = match.uri.replace("file://", "");
+      row.setAttribute(
+        "aria-label",
+        `${path}, line ${match.line + 1}, column ${match.startColumn + 1}: ${match.preview}`,
+      );
       row.setAttribute("role", "treeitem");
       row.setAttribute("aria-level", "2");
       const location = document.createElement("span");
@@ -101,6 +243,11 @@ window.addEventListener("message", ({ data }) => {
         match.preview.slice(match.previewEnd),
       );
       row.append(location, before, highlight, after);
+      describeControl(
+        row,
+        `result-help-${rendered}`,
+        `Open ${path} at line ${match.line + 1}, column ${match.startColumn + 1} and select this match.`,
+      );
       row.addEventListener("click", () =>
         vscode.postMessage({
           type: "open",
@@ -120,13 +267,22 @@ window.addEventListener("message", ({ data }) => {
   if (rendered < state.results.length) {
     const more = document.createElement("button");
     more.className = "show-more";
-    more.textContent = `Show next ${Math.min(pageSize, state.results.length - rendered)} results`;
+    more.type = "button";
+    const nextCount = Math.min(pageSize, state.results.length - rendered);
+    more.textContent = `Show next ${nextCount} results`;
+    more.setAttribute("aria-label", more.textContent);
+    describeControl(
+      more,
+      "more-help",
+      `Display the next ${nextCount} search results.`,
+    );
     more.addEventListener("click", () => {
       visibleMatches += pageSize;
       window.dispatchEvent(new MessageEvent("message", { data }));
     });
     sections.push(more);
   }
+  if (helpTarget !== undefined && results.contains(helpTarget)) hideHelp();
   results.replaceChildren(...sections);
 });
 results.addEventListener("keydown", (event) => {
