@@ -2,7 +2,7 @@
 mod filename_budget;
 
 mod tests {
-    use super::filename_budget::{filename_budget, within_budget};
+    use super::filename_budget::{filename_budget, filename_p95, within_budget};
     use std::time::Duration;
 
     #[test]
@@ -45,6 +45,43 @@ mod tests {
     fn rejects_one_nanosecond_over_40_ms() {
         assert!(!within_budget(
             Duration::from_millis(40) + Duration::from_nanos(1),
+            Duration::from_millis(40)
+        ));
+    }
+
+    #[test]
+    fn p95_requires_measurements() {
+        assert_eq!(filename_p95(&mut []), None);
+    }
+
+    #[test]
+    fn p95_counts_all_samples_and_tolerates_exactly_five_percent_slow_samples() {
+        let mut samples = vec![Duration::from_millis(100); 10];
+        samples.extend([Duration::from_millis(40); 190]);
+        assert_eq!(filename_p95(&mut samples), Some(Duration::from_millis(40)));
+        assert!(within_budget(
+            filename_p95(&mut samples).unwrap(),
+            Duration::from_millis(40)
+        ));
+    }
+
+    #[test]
+    fn p95_rejects_more_than_five_percent_over_budget_samples() {
+        let slow = Duration::from_millis(40) + Duration::from_nanos(1);
+        let mut samples = vec![Duration::from_millis(10); 189];
+        samples.extend([slow; 11]);
+        assert_eq!(filename_p95(&mut samples), Some(slow));
+        assert!(!within_budget(
+            filename_p95(&mut samples).unwrap(),
+            Duration::from_millis(40)
+        ));
+    }
+
+    #[test]
+    fn p95_does_not_hide_a_persistent_slowdown() {
+        let mut samples = vec![Duration::from_millis(41); 200];
+        assert!(!within_budget(
+            filename_p95(&mut samples).unwrap(),
             Duration::from_millis(40)
         ));
     }

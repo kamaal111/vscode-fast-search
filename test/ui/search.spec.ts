@@ -1,5 +1,288 @@
 import AxeBuilder from "@axe-core/playwright";
+import type { Locator, Page } from "@playwright/test";
 import { test, expect, renderState } from "./fixtures.js";
+
+async function expectViewportScrollContained(page: Page): Promise<void> {
+  const metrics = await page.evaluate(() => ({
+    viewportHeight: window.innerHeight,
+    documentHeight: document.documentElement.scrollHeight,
+    bodyHeight: document.body.scrollHeight,
+    documentScroll: window.scrollY,
+    bodyScroll: document.body.scrollTop,
+  }));
+  expect(metrics.documentHeight).toBeLessThanOrEqual(metrics.viewportHeight);
+  expect(metrics.bodyHeight).toBeLessThanOrEqual(metrics.viewportHeight);
+  expect(metrics.documentScroll).toBe(0);
+  expect(metrics.bodyScroll).toBe(0);
+}
+
+test("contains repeated scrolling beyond the pagination button", async ({
+  page,
+}) => {
+  await renderState(page, { count: 1000 });
+  const form = page.locator("#search-form");
+  const status = page.getByRole("status");
+  const formBounds = await form.boundingBox();
+  const statusBounds = await status.boundingBox();
+  const more = page.getByRole("button", {
+    name: "Show next 300 rows",
+    exact: true,
+  });
+  await more.scrollIntoViewIfNeeded();
+  await expect(more).toBeInViewport();
+  await page.mouse.move(90, 460);
+  await page.mouse.wheel(0, 10000);
+  await page.mouse.wheel(0, 10000);
+  await expectViewportScrollContained(page);
+  expect(await form.boundingBox()).toEqual(formBounds);
+  expect(await status.boundingBox()).toEqual(statusBounds);
+  await page.mouse.wheel(0, -10000);
+  await expect
+    .poll(() =>
+      page.locator("#results-scroll").evaluate((node) => node.scrollTop),
+    )
+    .toBe(0);
+  await expectViewportScrollContained(page);
+});
+
+for (const activation of [
+  { name: "click", run: (button: Locator) => button.click() },
+  { name: "Enter", run: (button: Locator) => button.press("Enter") },
+  { name: "Space", run: (button: Locator) => button.press("Space") },
+]) {
+  test(`keeps the batch boundary when loading with ${activation.name}`, async ({
+    page,
+  }) => {
+    await renderState(page, { count: 1000 });
+    const rows = page.getByRole("treeitem");
+    const scroller = page.locator("#results-scroll");
+    for (const batch of [
+      { loaded: 300, next: 300, total: 600 },
+      { loaded: 600, next: 300, total: 900 },
+      { loaded: 900, next: 101, total: 1001 },
+    ]) {
+      const more = page.getByRole("button", {
+        name: `Show next ${batch.next} rows`,
+        exact: true,
+      });
+      await more.scrollIntoViewIfNeeded();
+      await more.focus();
+      await page.keyboard.press("Escape");
+      const scrollTop = await scroller.evaluate((node) => node.scrollTop);
+      await activation.run(more);
+      await expect(rows).toHaveCount(batch.total);
+      await expect(rows.nth(batch.loaded)).toBeFocused();
+      await expect(rows.nth(batch.loaded)).toBeInViewport();
+      expect(await scroller.evaluate((node) => node.scrollTop)).toBe(scrollTop);
+      await expectViewportScrollContained(page);
+    }
+    await expect(page.getByRole("button", { name: /Show next/ })).toHaveCount(
+      0,
+    );
+  });
+}
+
+test("resets scrolling for a new paginated search session", async ({
+  page,
+}) => {
+  await renderState(page, { count: 1000 });
+  await page
+    .getByRole("button", { name: "Show next 300 rows", exact: true })
+    .scrollIntoViewIfNeeded();
+  expect(
+    await page.locator("#results-scroll").evaluate((node) => node.scrollTop),
+  ).toBeGreaterThan(0);
+  await renderState(page, { count: 1000, session: 2 });
+  expect(
+    await page.locator("#results-scroll").evaluate((node) => node.scrollTop),
+  ).toBe(0);
+  await expectViewportScrollContained(page);
+});
+
+test("retains pagination focus and scrolling during streaming and result removal", async ({
+  page,
+  messages,
+}) => {
+  await renderState(page, { count: 1000, searching: true });
+  const more = page.getByRole("button", {
+    name: "Show next 300 rows",
+    exact: true,
+  });
+  await more.scrollIntoViewIfNeeded();
+  await more.focus();
+  const scroller = page.locator("#results-scroll");
+  const scrollTop = await scroller.evaluate((node) => node.scrollTop);
+  await renderState(page, { count: 1001, searching: true });
+  await expect(more).toBeFocused();
+  expect(await scroller.evaluate((node) => node.scrollTop)).toBe(scrollTop);
+  await expectViewportScrollContained(page);
+  await renderState(page, { count: 100 });
+  const last = page.getByRole("treeitem", { name: /column 14:/ }).last();
+  await expect(last).toBeFocused();
+  await expect(last).toBeInViewport();
+  expect(await scroller.evaluate((node) => node.scrollTop)).toBe(
+    await scroller.evaluate((node) => node.scrollHeight - node.clientHeight),
+  );
+  await page.keyboard.press("Delete");
+  await expect
+    .poll(() => messages.at(-1))
+    .toEqual({
+      type: "dismissMatch",
+      session: 1,
+      id: JSON.stringify([
+        "file:///workspace/src/Result.swift",
+        100,
+        13,
+        100,
+        31,
+      ]),
+    });
+  await renderState(page, { count: 99 });
+  await expect(last).toBeFocused();
+  await expect(last).toBeInViewport();
+  await expectViewportScrollContained(page);
+});
+
+test("contains file descriptions and collapse behavior across paginated groups", async ({
+  page,
+}) => {
+  await renderState(page, { count: 1000, fileCount: 4 });
+  const formBounds = await page.locator("#search-form").boundingBox();
+  const more = page.getByRole("button", {
+    name: "Show next 300 rows",
+    exact: true,
+  });
+  await more.scrollIntoViewIfNeeded();
+  await expectViewportScrollContained(page);
+  await more.click();
+  await expect(page.getByRole("treeitem")).toHaveCount(600);
+  await expect(page.getByRole("treeitem").nth(300)).toBeFocused();
+  await expectViewportScrollContained(page);
+  const file = page.getByRole("treeitem", { name: /^Result2.swift,/ });
+  await file.focus();
+  await page.keyboard.press("ArrowLeft");
+  await expect(file).toHaveAttribute("aria-expanded", "false");
+  await expect(page.getByRole("status")).toHaveText("1000 results in 4 files");
+  expect(await page.locator("#search-form").boundingBox()).toEqual(formBounds);
+  await expectViewportScrollContained(page);
+});
+
+test("keeps pagination help in the viewport and dismisses it on result scrolling", async ({
+  page,
+}) => {
+  await renderState(page, { count: 1000 });
+  const more = page.getByRole("button", {
+    name: "Show next 300 rows",
+    exact: true,
+  });
+  await more.scrollIntoViewIfNeeded();
+  await page.mouse.move(90, 10);
+  await more.hover();
+  const tooltip = page.getByRole("tooltip");
+  await expect(tooltip).toBeVisible();
+  await expect(tooltip).toContainText(
+    "Display the next 300 file and match rows.",
+  );
+  expect(
+    await tooltip.evaluate((node) => node.getBoundingClientRect().bottom),
+  ).toBeLessThanOrEqual(480);
+  await page.mouse.wheel(0, -220);
+  await expect(tooltip).toBeHidden();
+  await expectViewportScrollContained(page);
+  await page.getByRole("combobox", { name: "Search", exact: true }).click();
+  await expect(
+    page.getByRole("combobox", { name: "Search", exact: true }),
+  ).toBeFocused();
+  await expectViewportScrollContained(page);
+});
+
+test("keeps the full search section in place while results scroll to the bottom", async ({
+  page,
+}) => {
+  await renderState(page, { count: 299 });
+  const form = page.locator("#search-form");
+  const status = page.getByRole("status");
+  const formBounds = await form.boundingBox();
+  const statusBounds = await status.boundingBox();
+  await page.mouse.move(90, 400);
+  await page.mouse.wheel(0, 10000);
+  await expect(
+    page.getByRole("treeitem", { name: /column 14:/ }).last(),
+  ).toBeInViewport();
+  expect(await form.boundingBox()).toEqual(formBounds);
+  expect(await status.boundingBox()).toEqual(statusBounds);
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
+  expect(
+    await page.locator("#results-scroll").evaluate((node) => node.scrollTop),
+  ).toBeGreaterThan(0);
+});
+
+test("scrolls keyboard-focused matches below the pinned search section", async ({
+  page,
+}) => {
+  await renderState(page, { count: 100 });
+  const rows = page.getByRole("treeitem", { name: /column 14:/ });
+  await rows.nth(30).focus();
+  await page.keyboard.press("ArrowDown");
+  await expect(rows.nth(31)).toBeFocused();
+  const matchBounds = await rows.nth(31).evaluate((node) => {
+    const rect = node.getBoundingClientRect();
+    return { top: rect.top, bottom: rect.bottom };
+  });
+  const statusBottom = await page
+    .getByRole("status")
+    .evaluate((node) => node.getBoundingClientRect().bottom);
+  expect(matchBounds.top).toBeGreaterThanOrEqual(statusBottom);
+  expect(matchBounds.bottom).toBeLessThanOrEqual(480);
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
+});
+
+test("preserves result scrolling when a new batch arrives", async ({
+  page,
+}) => {
+  await renderState(page, { count: 100, searching: true });
+  const row = page.getByRole("treeitem", { name: /column 14:/ }).nth(30);
+  await row.focus();
+  const scroller = page.locator("#results-scroll");
+  const scrollTop = await scroller.evaluate((node) => node.scrollTop);
+  expect(scrollTop).toBeGreaterThan(0);
+  await renderState(page, { count: 101, searching: true });
+  await expect(row).toBeFocused();
+  expect(await scroller.evaluate((node) => node.scrollTop)).toBe(scrollTop);
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
+});
+
+test("resizes the scrollable results below the full search section in a short sidebar", async ({
+  page,
+}) => {
+  await renderState(page, { count: 1000 });
+  await page.setViewportSize({ width: 180, height: 280 });
+  await page
+    .getByRole("treeitem", { name: /column 14:/ })
+    .last()
+    .focus();
+  const bounds = await page.locator("#results-scroll").evaluate((node) => {
+    const rect = node.getBoundingClientRect();
+    return { top: rect.top, bottom: rect.bottom, height: rect.height };
+  });
+  const statusBottom = await page
+    .getByRole("status")
+    .evaluate((node) => node.getBoundingClientRect().bottom);
+  expect(bounds.top).toBe(statusBottom);
+  expect(bounds.bottom).toBe(280);
+  expect(bounds.height).toBeGreaterThan(22);
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(
+    180,
+  );
+  await page.setViewportSize({ width: 320, height: 480 });
+  expect(
+    await page
+      .locator("#results-scroll")
+      .evaluate((node) => node.getBoundingClientRect().bottom),
+  ).toBe(480);
+  await expectViewportScrollContained(page);
+});
 
 test("renders a compact sidebar without horizontal overflow", async ({
   page,
@@ -21,11 +304,74 @@ test("renders a compact sidebar without horizontal overflow", async ({
       optionsRight: options.getBoundingClientRect().right,
     };
   });
-  expect(layout.left).toBe(0);
-  expect(layout.right).toBe(0);
+  expect(layout.left).toBe(20);
+  expect(layout.right).toBe(20);
   expect(layout.overflow).toBe(false);
   expect(layout.optionsRight).toBeLessThanOrEqual(layout.queryRight);
   await expect(page).toHaveScreenshot("results.png");
+});
+
+test("insets controls and pagination while keeping the results at the sidebar edges", async ({
+  page,
+}) => {
+  await renderState(page, { count: 1000 });
+  const expectFullWidth = async () => {
+    const geometry = await page.evaluate(() => {
+      const bodyStyle = getComputedStyle(document.body);
+      return {
+        padding: [bodyStyle.paddingLeft, bodyStyle.paddingRight],
+        viewportWidth: window.innerWidth,
+        sections: ["search-form", "status", "results-scroll"].map((id) => {
+          const section = document.getElementById(id);
+          if (section === null) throw new Error(`Missing section: ${id}`);
+          const bounds = section.getBoundingClientRect();
+          const style = getComputedStyle(section);
+          return {
+            id,
+            left: bounds.left,
+            right: bounds.right,
+            padding: [style.paddingLeft, style.paddingRight],
+          };
+        }),
+        pagination: (() => {
+          const scroller = document.getElementById("results-scroll");
+          const button = document.querySelector(".show-more");
+          if (scroller === null || button === null)
+            throw new Error("Missing pagination controls");
+          const scrollBounds = scroller.getBoundingClientRect();
+          const buttonBounds = button.getBoundingClientRect();
+          return {
+            left: buttonBounds.left - scrollBounds.left,
+            right:
+              scrollBounds.left + scroller.clientWidth - buttonBounds.right,
+          };
+        })(),
+        horizontalOverflow:
+          document.documentElement.scrollWidth > window.innerWidth,
+      };
+    });
+    expect(geometry.padding).toEqual(["0px", "0px"]);
+    for (const bounds of geometry.sections) {
+      expect(bounds.left).toBe(0);
+      expect(bounds.right).toBe(geometry.viewportWidth);
+      expect(bounds.padding).toEqual(
+        bounds.id === "results-scroll" ? ["0px", "0px"] : ["20px", "20px"],
+      );
+    }
+    expect(geometry.pagination).toEqual({ left: 20, right: 20 });
+    expect(geometry.horizontalOverflow).toBe(false);
+    await expectViewportScrollContained(page);
+  };
+  await expectFullWidth();
+  const more = page.getByRole("button", {
+    name: "Show next 300 rows",
+    exact: true,
+  });
+  await more.scrollIntoViewIfNeeded();
+  await expectFullWidth();
+  await more.click();
+  await expect(page.getByRole("treeitem")).toHaveCount(600);
+  await expectFullWidth();
 });
 
 test("aligns indented source previews with file icons and opens original columns", async ({
@@ -112,6 +458,18 @@ test("supports keyboard focus, toggle activation, and Enter to search", async ({
 });
 
 test("sends filter updates and cancellation", async ({ page, messages }) => {
+  await renderState(page, { count: 299 });
+  await page
+    .getByRole("treeitem", { name: /column 14:/ })
+    .last()
+    .scrollIntoViewIfNeeded();
+  await page.getByRole("combobox", { name: "Search", exact: true }).click();
+  await page
+    .getByRole("combobox", { name: "Search", exact: true })
+    .fill("fixture");
+  await expect
+    .poll(() => messages.at(-1))
+    .toEqual({ type: "update", field: "query", value: "fixture" });
   await page.getByRole("textbox", { name: "files to include" }).click();
   await page
     .getByRole("textbox", { name: "files to include" })
@@ -188,6 +546,7 @@ test("shows the remaining pagination batch and clears obsolete result help", asy
     exact: true,
   });
   await more.click();
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
   await expect(page.getByRole("treeitem", { name: /column 14:/ })).toHaveCount(
     301,
   );

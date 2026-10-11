@@ -4,6 +4,7 @@ const include = document.querySelector("#include");
 const exclude = document.querySelector("#exclude");
 const status = document.querySelector("#status");
 const results = document.querySelector("#results");
+const resultsScroll = document.querySelector("#results-scroll");
 const tooltip = document.querySelector("#control-tooltip");
 let helpTarget;
 let showTimer;
@@ -196,6 +197,7 @@ window.addEventListener("message", ({ data }) => {
     session = state.session;
     collapsed.clear();
     visibleRows = pageSize;
+    resultsScroll.scrollTop = 0;
   }
 
   const count = state.results.length;
@@ -212,9 +214,9 @@ function treeRows() {
   return [...results.querySelectorAll('[role="treeitem"]')];
 }
 
-function focusRow(row) {
+function focusRow(row, options = {}) {
   for (const item of treeRows()) item.tabIndex = item === row ? 0 : -1;
-  row?.focus();
+  row?.focus(options);
 }
 
 function dismiss(row) {
@@ -255,12 +257,13 @@ function renderResults() {
   if (latestData === undefined) return;
   const { groups, showLineNumbers } = latestData;
   const oldRows = treeRows();
+  const paginationFocused = pagination.contains(document.activeElement);
   const active = document.activeElement?.closest('[role="treeitem"]');
   const activeKey = active?.dataset.key;
   const actionFocused =
     document.activeElement?.classList.contains("dismiss-result");
   const oldIndex = oldRows.indexOf(active);
-  const scrollTop = document.documentElement.scrollTop;
+  const scrollTop = resultsScroll.scrollTop;
   const sections = [];
   let rendered = 0;
   let totalRows = 0;
@@ -408,11 +411,10 @@ function renderResults() {
       `Display the next ${nextCount} file and match rows.`,
     );
     more.addEventListener("click", () => {
+      const previousRowCount = treeRows().length;
       visibleRows += pageSize;
       renderResults();
-      if (pagination.firstElementChild !== null)
-        pagination.firstElementChild.focus();
-      else focusRow(treeRows().at(-1));
+      focusRow(treeRows()[previousRowCount], { preventScroll: true });
     });
     pagination.append(more);
   }
@@ -440,7 +442,13 @@ function renderResults() {
       (focus ?? next).focus({ preventScroll: true });
     }
   } else if (oldIndex >= 0) query.focus({ preventScroll: true });
-  document.documentElement.scrollTop = scrollTop;
+  if (paginationFocused) {
+    if (pagination.firstElementChild !== null)
+      pagination.firstElementChild.focus({ preventScroll: true });
+    else if (rows.length > 0) focusRow(rows.at(-1), { preventScroll: true });
+    else query.focus({ preventScroll: true });
+  }
+  resultsScroll.scrollTop = scrollTop;
 }
 
 results.addEventListener("focusin", (event) => {

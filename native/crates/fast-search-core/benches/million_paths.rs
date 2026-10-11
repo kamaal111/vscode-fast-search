@@ -1,6 +1,11 @@
 use fast_search_core::FileSearcher;
 use fast_search_index::{IndexedPath, Snapshot, character_bag};
-use std::{hint::black_box, path::PathBuf, sync::Arc, time::Instant};
+use std::{
+    hint::black_box,
+    path::PathBuf,
+    sync::Arc,
+    time::{Duration, Instant},
+};
 
 #[path = "support/filename_budget.rs"]
 mod filename_budget;
@@ -42,19 +47,33 @@ fn main() {
         );
     }
     let searcher = FileSearcher::default();
-    for _ in 0..5 {
+    let warmup_started = Instant::now();
+    let mut warmup_searches = 0;
+    while warmup_searches < 5 || warmup_started.elapsed() < Duration::from_secs(2) {
         let token = searcher.cancellation().token();
         black_box(searcher.search(&snapshot, "src svc 9999", 100, None, token));
+        warmup_searches += 1;
     }
-    let mut samples = Vec::with_capacity(40);
-    for _ in 0..40 {
+    println!(
+        "million-path warm-up: {warmup_searches} searches in {:?}; Rayon threads: {}",
+        warmup_started.elapsed(),
+        rayon::current_num_threads()
+    );
+    let mut samples = Vec::with_capacity(200);
+    for _ in 0..200 {
         let token = searcher.cancellation().token();
         let started = Instant::now();
         black_box(searcher.search(&snapshot, "src svc 9999", 100, None, token));
         samples.push(started.elapsed());
     }
-    samples.sort_unstable();
-    let p95 = samples[37];
+    let p95 = filename_budget::filename_p95(&mut samples).expect("missing filename timings");
+    println!(
+        "million-path filename samples: {}; min: {:?}; median: {:?}; max: {:?}",
+        samples.len(),
+        samples[0],
+        samples[samples.len() / 2],
+        samples[samples.len() - 1]
+    );
     println!("million-path warm filename search p95: {p95:?} (budget: {budget:?})");
     assert!(
         filename_budget::within_budget(p95, budget),
