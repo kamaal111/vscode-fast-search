@@ -1,6 +1,6 @@
 # Fast Search for VS Code
 
-Fast Search is a standalone, local-only VS Code extension for low-latency filename and full-text search. A persistent Rust sidecar owns indexing and matching; the extension uses only stable VS Code APIs. The interaction is inspired by the speed and shape of Zed search, but all Fast Search code is independently written.
+Fast Search is a standalone, local-only VS Code extension for low-latency filename and full-text search. A persistent Rust sidecar owns indexing and matching; the extension uses only stable VS Code APIs.
 
 ## Features and support
 
@@ -130,6 +130,6 @@ After editing the extension or native engine, rerun `pnpm run package`, install 
 
 All indexing and search execute locally. There is no telemetry or network service. Paths and contents are never transmitted; only paths and compact index metadata live in memory, and file contents are not persisted.
 
-Original code is MIT licensed. Unmodified `nucleo-matcher` is MPL-2.0; ripgrep search components and other dependencies retain their permissive licenses. See `THIRD_PARTY_NOTICES.md`. If MPL-covered source is modified, the modified covered files must remain available under MPL-2.0. This project contains no Zed or VS Code implementation code, fixtures, CSS, icons, or branded artwork.
+Original code is MIT licensed. Unmodified `nucleo-matcher` is MPL-2.0; ripgrep search components and other dependencies retain their permissive licenses. See `THIRD_PARTY_NOTICES.md`. If MPL-covered source is modified, the modified covered files must remain available under MPL-2.0.
 
-Contributions should preserve dependency direction, add behavior at its owning boundary, keep protocol changes mirrored and versioned, and put each semantic behavior in one integration suite. Do not mechanically translate GPL-covered Zed code.
+Contributions should preserve dependency direction, add behavior at its owning boundary, keep protocol changes mirrored and versioned, and put each semantic behavior in one integration suite.
