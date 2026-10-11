@@ -1,0 +1,20 @@
+README.md
+  s_04bca42342b4d5::t_ff93a1369698ba 16,74-103
+  s_04bca42342b4d5::t_707b360c379a3a 104
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "63a492dabd56dfc658628b8affda44098139df14",
+  "prompts": {},
+  "sessions": {
+    "s_04bca42342b4d5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12be7-3ec3-71e3-bf70-773f7052831a",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Kamaal Farah <kamaal.f1@gmail.com>"
+    }
+  }
+}
