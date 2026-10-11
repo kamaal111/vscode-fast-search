@@ -13,7 +13,7 @@ type WebviewMessage =
   | { type: "update"; field: "query" | "include" | "exclude"; value: string }
   | {
       type: "toggle";
-      field: "regex" | "caseSensitive" | "wholeWord" | "useExcludes";
+      field: "regex" | "caseSensitive" | "wholeWord";
       value: boolean;
     }
   | { type: "search" }
@@ -207,8 +207,7 @@ function decodeWebviewMessage(value: unknown): WebviewMessage | undefined {
     "field" in value &&
     (value.field === "regex" ||
       value.field === "caseSensitive" ||
-      value.field === "wholeWord" ||
-      value.field === "useExcludes") &&
+      value.field === "wholeWord") &&
     "value" in value &&
     typeof value.value === "boolean"
   )

@@ -73,7 +73,6 @@ export async function renderState(
       regex: false,
       smartCase: true,
       multiline: false,
-      useExcludes: true,
     },
   };
   await page.evaluate(

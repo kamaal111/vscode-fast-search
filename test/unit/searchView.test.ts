@@ -39,7 +39,6 @@ function sendState(count = 1): void {
             caseSensitive: true,
             wholeWord: false,
             regex: false,
-            useExcludes: true,
           },
         },
         groups: [{ uri: "file:///workspace/src/example.ts", matches }],
@@ -69,6 +68,16 @@ beforeEach(() => {
 afterEach(() => {
   vi.useRealTimers();
   dom.window.close();
+});
+
+it("updates the search controls from the extension state", () => {
+  sendState();
+  expect(element("#query")).toHaveProperty("value", "match");
+  expect(element("#include")).toHaveProperty("value", "");
+  expect(element("#exclude")).toHaveProperty("value", "");
+  expect(
+    element("[data-toggle=caseSensitive]").getAttribute("aria-pressed"),
+  ).toBe("true");
 });
 
 it("names the embedded options and describes every form control", () => {

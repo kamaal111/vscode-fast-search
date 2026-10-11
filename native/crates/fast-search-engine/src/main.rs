@@ -104,6 +104,12 @@ fn main() {
                             root_excludes: configuration.root_excludes,
                             use_ignore_files: configuration.use_ignore_files,
                             use_ignore_files_by_root: configuration.use_ignore_files_by_root,
+                            use_global_ignore_files: configuration.use_global_ignore_files,
+                            use_global_ignore_files_by_root: configuration
+                                .use_global_ignore_files_by_root,
+                            use_parent_ignore_files: configuration.use_parent_ignore_files,
+                            use_parent_ignore_files_by_root: configuration
+                                .use_parent_ignore_files_by_root,
                             follow_symlinks: configuration.follow_symlinks,
                             follow_symlinks_by_root: configuration.follow_symlinks_by_root,
                         },
@@ -191,12 +197,7 @@ fn main() {
                 *active_text_request
                     .lock()
                     .unwrap_or_else(|error| error.into_inner()) = Some(request_id.clone());
-                let snapshot = index
-                    .query_snapshot(options.use_excludes)
-                    .unwrap_or_else(|error| {
-                        eprintln!("query-specific walk failed: {error}");
-                        index.searchable_snapshot()
-                    });
+                let snapshot = index.searchable_snapshot();
                 let searcher = text_searcher.clone();
                 let output = responses.clone();
                 let active_request = Arc::clone(&active_text_request);

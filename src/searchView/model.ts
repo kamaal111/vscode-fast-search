@@ -30,7 +30,6 @@ const initialOptions = {
   smartCase: true,
   wholeWord: false,
   multiline: false,
-  useExcludes: true,
 };
 export class SearchModel {
   private state: SearchState = {

@@ -5,7 +5,7 @@ Fast Search is a standalone, local-only VS Code extension for low-latency filena
 ## Features and support
 
 - **Fast Search: Open File** (`fastSearch.openFile`) provides fuzzy, whitespace-atom filename search. Append `:line` or `:line:column` to jump to a location.
-- **Fast Search: Find in Files** (`fastSearch.findInFiles`) opens a dedicated activity-bar view with literal/regex, case, whole-word, include/exclude, ignore-setting, progress, cancellation, and grouped results.
+- **Fast Search: Find in Files** (`fastSearch.findInFiles`) opens a dedicated activity-bar view with literal/regex, case, whole-word, include/exclude, progress, cancellation, and grouped results.
 - **Fast Search: Rebuild Index** (`fastSearch.rebuildIndex`) atomically replaces the current snapshots.
 - **Fast Search: Show Diagnostics** (`fastSearch.showDiagnostics`) shows engine readiness, indexed-file count, roots, generation, and failures.
 
@@ -22,7 +22,7 @@ Build or download the VSIX, then run **Extensions: Install from VSIX…**. To bu
 ]
 ```
 
-The filename picker fuzzy-matches the normalized full relative path and ranks filename prefixes, short paths, and files near the active editor more highly. Empty input includes open editors and recent choices; selecting previews, Enter pins, and the split button opens beside. The search view accepts comma-separated include/exclude globs, retains workspace-local query history, and renders large result sets in bounded windows. Text search supports literal and regular-expression modes, smart-case, explicit case sensitivity, whole words, multiline expressions, LF/CRLF, UTF-8 BOMs, configured `files.encoding`, binary rejection, and dirty or untitled editor overlays. Ignore files and resource-scoped `files.exclude` are honored by default; disabling exclusions performs a query-specific walk while still applying the view's explicit exclusions.
+The filename picker fuzzy-matches the normalized full relative path and ranks filename prefixes, short paths, and files near the active editor more highly. Empty input includes open editors and recent choices; selecting previews, Enter pins, and the split button opens beside. The search view accepts comma-separated include/exclude globs, retains workspace-local query history, and renders large result sets in bounded windows. Text search supports literal and regular-expression modes, smart-case, explicit case sensitivity, whole words, multiline expressions, LF/CRLF, UTF-8 BOMs, configured `files.encoding`, binary rejection, and dirty or untitled editor overlays. Search always honors resource-scoped `files.exclude` and `search.exclude`, including conditional sibling rules; `search.exclude` overrides duplicate patterns from `files.exclude`. Ignore files follow `search.useIgnoreFiles` (enabled by default), `search.useGlobalIgnoreFiles`, and `search.useParentIgnoreFiles` (both disabled by default). Global and parent ignores require `search.useIgnoreFiles`. Change these standard VS Code settings to include ignored files; the view's explicit exclusions remain additional filters.
 
 Settings:
 

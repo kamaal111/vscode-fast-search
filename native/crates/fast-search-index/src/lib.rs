@@ -1,4 +1,5 @@
-use globset::{Glob, GlobSet, GlobSetBuilder};
+use fast_search_protocol::ExclusionRule;
+use globset::{GlobBuilder, GlobMatcher, GlobSet, GlobSetBuilder};
 use ignore::{WalkBuilder, WalkState};
 use percent_encoding::{AsciiSet, CONTROLS, percent_decode_str, utf8_percent_encode};
 use serde::{Deserialize, Serialize};
@@ -17,9 +18,13 @@ pub struct RootSpec {
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct IndexOptions {
     pub excludes: Vec<String>,
-    pub root_excludes: HashMap<String, Vec<String>>,
+    pub root_excludes: HashMap<String, Vec<ExclusionRule>>,
     pub use_ignore_files: bool,
     pub use_ignore_files_by_root: HashMap<String, bool>,
+    pub use_global_ignore_files: bool,
+    pub use_global_ignore_files_by_root: HashMap<String, bool>,
+    pub use_parent_ignore_files: bool,
+    pub use_parent_ignore_files_by_root: HashMap<String, bool>,
     pub follow_symlinks: bool,
     pub follow_symlinks_by_root: HashMap<String, bool>,
 }
@@ -252,25 +257,6 @@ impl WorkspaceIndex {
         Ok(snapshot)
     }
 
-    pub fn query_snapshot(&self, use_excludes: bool) -> Result<Snapshot, String> {
-        if use_excludes {
-            return Ok(self.searchable_snapshot());
-        }
-        let (roots, mut options, generation) = {
-            let state = self.state.read().map_err(|_| "index lock poisoned")?;
-            (
-                state.roots.clone(),
-                state.options.clone(),
-                state.snapshot.generation,
-            )
-        };
-        options.excludes.clear();
-        options.root_excludes.clear();
-        options.use_ignore_files = false;
-        options.use_ignore_files_by_root.clear();
-        Ok(Snapshot::new(scan(&roots, &options), generation))
-    }
-
     pub fn diagnostics(&self) -> Diagnostics {
         self.state
             .read()
@@ -299,7 +285,7 @@ fn scan(roots: &[RootSpec], options: &IndexOptions) -> Vec<IndexedPath> {
             .get(&root.id)
             .copied()
             .unwrap_or(options.follow_symlinks);
-        let root_excludes = build_excludes(
+        let root_excludes = ExclusionMatcher::new(
             options
                 .root_excludes
                 .get(&root.id)
@@ -312,9 +298,23 @@ fn scan(roots: &[RootSpec], options: &IndexOptions) -> Vec<IndexedPath> {
             .follow_links(follow_symlinks)
             .ignore(use_ignore_files)
             .git_ignore(use_ignore_files)
-            .git_global(use_ignore_files)
+            .git_global(
+                use_ignore_files
+                    && options
+                        .use_global_ignore_files_by_root
+                        .get(&root.id)
+                        .copied()
+                        .unwrap_or(options.use_global_ignore_files),
+            )
             .git_exclude(use_ignore_files)
-            .parents(use_ignore_files)
+            .parents(
+                use_ignore_files
+                    && options
+                        .use_parent_ignore_files_by_root
+                        .get(&root.id)
+                        .copied()
+                        .unwrap_or(options.use_parent_ignore_files),
+            )
             .require_git(false);
         let discovered = Arc::new(Mutex::new(Vec::new()));
         builder.build_parallel().run(|| {
@@ -337,7 +337,9 @@ fn scan(roots: &[RootSpec], options: &IndexOptions) -> Vec<IndexedPath> {
                 continue;
             };
             let relative = relative.to_string_lossy().replace('\\', "/");
-            if global_excludes.is_match(&relative) || root_excludes.is_match(&relative) {
+            if global_excludes.is_match(&relative)
+                || root_excludes.is_match(&root.path, relative.as_str())
+            {
                 continue;
             }
             let filename_offset = relative.rfind('/').map_or(0, |offset| offset + 1);
@@ -359,17 +361,78 @@ fn scan(roots: &[RootSpec], options: &IndexOptions) -> Vec<IndexedPath> {
 fn build_excludes(patterns: &[String]) -> GlobSet {
     let mut builder = GlobSetBuilder::new();
     for pattern in patterns {
-        let normalized = pattern.trim_start_matches('/');
-        if let Ok(glob) = Glob::new(normalized) {
+        let normalized = pattern.trim().trim_matches('/');
+        if let Ok(glob) = GlobBuilder::new(normalized).literal_separator(true).build() {
             builder.add(glob);
         }
         if !normalized.ends_with("/**")
-            && let Ok(glob) = Glob::new(&format!("{normalized}/**"))
+            && let Ok(glob) = GlobBuilder::new(&format!("{normalized}/**"))
+                .literal_separator(true)
+                .build()
         {
             builder.add(glob);
         }
     }
     builder.build().unwrap_or_else(|_| GlobSet::empty())
+}
+
+struct ExclusionMatcher {
+    unconditional: GlobSet,
+    conditional: Vec<(GlobMatcher, String)>,
+}
+
+impl ExclusionMatcher {
+    fn new(rules: &[ExclusionRule]) -> Self {
+        let mut patterns = Vec::new();
+        let mut conditional = Vec::new();
+        for rule in rules {
+            match rule {
+                ExclusionRule::Pattern(pattern) => patterns.push(pattern.clone()),
+                ExclusionRule::Conditional { pattern, when } => {
+                    if let Ok(glob) = GlobBuilder::new(pattern.trim().trim_matches('/'))
+                        .literal_separator(true)
+                        .build()
+                    {
+                        conditional.push((glob.compile_matcher(), when.clone()));
+                    }
+                }
+            }
+        }
+        Self {
+            unconditional: build_excludes(&patterns),
+            conditional,
+        }
+    }
+
+    fn is_match(&self, root: &Path, relative: &str) -> bool {
+        if self.unconditional.is_match(relative) {
+            return true;
+        }
+        if self.conditional.is_empty() {
+            return false;
+        }
+        let mut candidate = Some(Path::new(relative));
+        while let Some(path) = candidate.filter(|path| !path.as_os_str().is_empty()) {
+            for (pattern, when) in &self.conditional {
+                if pattern.is_match(path) {
+                    let stem = path.file_stem().unwrap_or_default().to_string_lossy();
+                    let sibling = when.replacen("$(basename)", &stem, 1);
+                    if Path::new(&sibling)
+                        .file_name()
+                        .is_some_and(|name| name == sibling.as_str())
+                        && root
+                            .join(path.parent().unwrap_or_else(|| Path::new("")))
+                            .join(sibling)
+                            .exists()
+                    {
+                        return true;
+                    }
+                }
+            }
+            candidate = path.parent();
+        }
+        false
+    }
 }
 
 pub fn character_bag(value: &str) -> u64 {

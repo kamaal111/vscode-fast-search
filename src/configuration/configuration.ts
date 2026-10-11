@@ -1,5 +1,9 @@
 import * as vscode from "vscode";
-import type { SearchConfiguration, WorkspaceRoot } from "../engine/protocol.js";
+import type {
+  ExclusionRule,
+  SearchConfiguration,
+  WorkspaceRoot,
+} from "../engine/protocol.js";
 
 export type ResolvedConfiguration = {
   roots: WorkspaceRoot[];
@@ -14,20 +18,43 @@ export function resolveConfiguration(): ResolvedConfiguration {
   const roots = folders
     .filter((folder) => folder.uri.scheme === "file")
     .map((folder) => ({ id: folder.uri.toString(), path: folder.uri.fsPath }));
-  const rootExcludes: Record<string, string[]> = {};
+  const rootExcludes: Record<string, ExclusionRule[]> = {};
   const useIgnoreFilesByRoot: Record<string, boolean> = {};
+  const useGlobalIgnoreFilesByRoot: Record<string, boolean> = {};
+  const useParentIgnoreFilesByRoot: Record<string, boolean> = {};
   const followSymlinksByRoot: Record<string, boolean> = {};
   for (const folder of folders) {
-    const configured = vscode.workspace
-      .getConfiguration("files", folder.uri)
-      .get<Record<string, boolean>>("exclude", {});
-    rootExcludes[folder.uri.toString()] = Object.entries(configured)
-      .filter(([, enabled]) => enabled)
-      .map(([pattern]) => pattern);
     const search = vscode.workspace.getConfiguration("search", folder.uri);
+    const configured = {
+      ...vscode.workspace
+        .getConfiguration("files", folder.uri)
+        .get<Record<string, unknown>>("exclude", {}),
+      ...search.get<Record<string, unknown>>("exclude", {}),
+    };
+    rootExcludes[folder.uri.toString()] = Object.entries(configured).flatMap(
+      ([pattern, value]): ExclusionRule[] => {
+        if (value === true) return [pattern];
+        if (
+          typeof value === "object" &&
+          value !== null &&
+          "when" in value &&
+          typeof value.when === "string"
+        )
+          return [{ pattern, when: value.when }];
+        return [];
+      },
+    );
     useIgnoreFilesByRoot[folder.uri.toString()] = search.get(
       "useIgnoreFiles",
       true,
+    );
+    useGlobalIgnoreFilesByRoot[folder.uri.toString()] = search.get(
+      "useGlobalIgnoreFiles",
+      false,
+    );
+    useParentIgnoreFilesByRoot[folder.uri.toString()] = search.get(
+      "useParentIgnoreFiles",
+      false,
     );
     followSymlinksByRoot[folder.uri.toString()] = search.get(
       "followSymlinks",
@@ -51,6 +78,10 @@ export function resolveConfiguration(): ResolvedConfiguration {
       rootExcludes,
       useIgnoreFiles: true,
       useIgnoreFilesByRoot,
+      useGlobalIgnoreFiles: false,
+      useGlobalIgnoreFilesByRoot,
+      useParentIgnoreFiles: false,
+      useParentIgnoreFilesByRoot,
       followSymlinks: false,
       followSymlinksByRoot,
     },

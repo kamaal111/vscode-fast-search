@@ -39,7 +39,6 @@ export function searchViewHtml({
     <input id="include" placeholder="e.g. **/*.ts, src/**" data-help="include-help" aria-describedby="include-help">
     <label for="exclude" data-help="exclude-help">files to exclude</label>
     <input id="exclude" placeholder="e.g. **/node_modules/**" data-help="exclude-help" aria-describedby="exclude-help">
-    <label class="check" data-help="excludes-help"><input id="useExcludes" type="checkbox" checked data-help="excludes-help" aria-describedby="excludes-help">Use exclude and ignore settings</label>
   </form>
   <span class="sr-only" id="query-help">Search file contents. Press Enter to run the search; typing also searches when Search on Type is enabled.</span>
   <span class="sr-only" id="case-help">Require matching uppercase and lowercase letters. When off, queries containing uppercase letters still match case through smart case.</span>
@@ -48,7 +47,6 @@ export function searchViewHtml({
   <span class="sr-only" id="cancel-help">Stop the current search.</span>
   <span class="sr-only" id="include-help">Search only files matching these comma-separated glob patterns. Leave empty to search all included files.</span>
   <span class="sr-only" id="exclude-help">Skip files matching these comma-separated glob patterns.</span>
-  <span class="sr-only" id="excludes-help">Apply configured file exclusions and ignore files, such as .gitignore. Turn off to search files hidden by those settings.</span>
   <div id="status" role="status" aria-live="polite"></div>
   <div id="results" role="tree" aria-label="Search results"></div>
   <div id="control-tooltip" role="tooltip" hidden></div>

@@ -42,6 +42,10 @@ export class ProcessEngineClient implements EngineClient {
     rootExcludes: {},
     useIgnoreFiles: true,
     useIgnoreFilesByRoot: {},
+    useGlobalIgnoreFiles: false,
+    useGlobalIgnoreFilesByRoot: {},
+    useParentIgnoreFiles: false,
+    useParentIgnoreFilesByRoot: {},
     followSymlinks: false,
     followSymlinksByRoot: {},
   };
