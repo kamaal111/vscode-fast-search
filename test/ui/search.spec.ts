@@ -89,10 +89,7 @@ test("supports keyboard focus, toggle activation, and Enter to search", async ({
   await expect.poll(() => messages.at(-1)).toEqual({ type: "search" });
 });
 
-test("sends filter and checkbox updates and cancellation", async ({
-  page,
-  messages,
-}) => {
+test("sends filter updates and cancellation", async ({ page, messages }) => {
   await page.getByRole("textbox", { name: "files to include" }).click();
   await page
     .getByRole("textbox", { name: "files to include" })
@@ -107,12 +104,6 @@ test("sends filter and checkbox updates and cancellation", async ({
   await expect
     .poll(() => messages.at(-1))
     .toEqual({ type: "update", field: "exclude", value: "**/generated/**" });
-  await page
-    .getByRole("checkbox", { name: "Use exclude and ignore settings" })
-    .uncheck();
-  await expect
-    .poll(() => messages.at(-1))
-    .toEqual({ type: "toggle", field: "useExcludes", value: false });
   await page.getByRole("button", { name: "Cancel Search" }).click();
   await expect.poll(() => messages.at(-1)).toEqual({ type: "cancel" });
 });

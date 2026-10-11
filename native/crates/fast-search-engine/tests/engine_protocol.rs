@@ -16,7 +16,11 @@ struct Engine {
 
 impl Engine {
     fn start() -> Self {
+        Self::start_with_env(&[])
+    }
+    fn start_with_env(env: &[(&str, &std::path::Path)]) -> Self {
         let mut child = Command::new(env!("CARGO_BIN_EXE_fast-search-engine"))
+            .envs(env.iter().copied())
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .spawn()
@@ -119,7 +123,7 @@ fn indexes_searches_refreshes_overlays_and_validates_protocol() {
         .as_str()
         .expect("encoded URI")
         .to_owned();
-    engine.send(json!({"type":"textSearch","version":1,"requestId":"spaced-overlay","query":"overlay for spaced path","options":{"encoding":null,"regex":false,"caseSensitive":false,"smartCase":true,"wholeWord":false,"multiline":false,"includes":[],"excludes":[],"useExcludes":true,"maxResults":20},"overlays":[{"uri":spaced_uri,"text":"overlay for spaced path\n","untitled":false}]}));
+    engine.send(json!({"type":"textSearch","version":1,"requestId":"spaced-overlay","query":"overlay for spaced path","options":{"encoding":null,"regex":false,"caseSensitive":false,"smartCase":true,"wholeWord":false,"multiline":false,"includes":[],"excludes":[],"maxResults":20},"overlays":[{"uri":spaced_uri,"text":"overlay for spaced path\n","untitled":false}]}));
     assert_eq!(
         engine.until("textResultBatch")["results"][0]["preview"],
         "overlay for spaced path"
@@ -164,36 +168,36 @@ fn indexes_searches_refreshes_overlays_and_validates_protocol() {
         "file://{}",
         first.path().join("generated/RenamedFile.swift").display()
     );
-    engine.send(json!({"type":"textSearch","version":1,"requestId":"text","query":"overlay wins","options":{"regex":false,"caseSensitive":false,"smartCase":true,"wholeWord":false,"multiline":false,"includes":[],"excludes":[],"useExcludes":true,"maxResults":20},"overlays":[{"uri":uri,"text":"overlay wins here\n","untitled":false}]}));
+    engine.send(json!({"type":"textSearch","version":1,"requestId":"text","query":"overlay wins","options":{"regex":false,"caseSensitive":false,"smartCase":true,"wholeWord":false,"multiline":false,"includes":[],"excludes":[],"maxResults":20},"overlays":[{"uri":uri,"text":"overlay wins here\n","untitled":false}]}));
     let batch = engine.until("textResultBatch");
     assert_eq!(batch["results"][0]["preview"], "overlay wins here");
     assert_eq!(engine.until("textSearchComplete")["resultCount"], 1);
 
-    engine.send(json!({"type":"textSearch","version":1,"requestId":"regex-case","query":"Hello\\s+Search","options":{"encoding":null,"regex":true,"caseSensitive":true,"smartCase":false,"wholeWord":false,"multiline":false,"includes":["src/**"],"excludes":[],"useExcludes":true,"maxResults":20},"overlays":[]}));
+    engine.send(json!({"type":"textSearch","version":1,"requestId":"regex-case","query":"Hello\\s+Search","options":{"encoding":null,"regex":true,"caseSensitive":true,"smartCase":false,"wholeWord":false,"multiline":false,"includes":["src/**"],"excludes":[],"maxResults":20},"overlays":[]}));
     assert_eq!(engine.until("textResultBatch")["results"][0]["line"], 0);
     assert_eq!(engine.until("textSearchComplete")["resultCount"], 1);
 
-    engine.send(json!({"type":"textSearch","version":1,"requestId":"whole","query":"needle","options":{"encoding":null,"regex":false,"caseSensitive":false,"smartCase":true,"wholeWord":true,"multiline":false,"includes":["src/**"],"excludes":[],"useExcludes":true,"maxResults":20},"overlays":[]}));
+    engine.send(json!({"type":"textSearch","version":1,"requestId":"whole","query":"needle","options":{"encoding":null,"regex":false,"caseSensitive":false,"smartCase":true,"wholeWord":true,"multiline":false,"includes":["src/**"],"excludes":[],"maxResults":20},"overlays":[]}));
     assert_eq!(
         engine.until("textResultBatch")["results"][0]["preview"],
         "whole needle needles"
     );
     assert_eq!(engine.until("textSearchComplete")["resultCount"], 1);
 
-    engine.send(json!({"type":"textSearch","version":1,"requestId":"multiline","query":"BEGIN.*END","options":{"encoding":null,"regex":true,"caseSensitive":true,"smartCase":false,"wholeWord":false,"multiline":true,"includes":[],"excludes":[],"useExcludes":true,"maxResults":20},"overlays":[]}));
+    engine.send(json!({"type":"textSearch","version":1,"requestId":"multiline","query":"BEGIN.*END","options":{"encoding":null,"regex":true,"caseSensitive":true,"smartCase":false,"wholeWord":false,"multiline":true,"includes":[],"excludes":[],"maxResults":20},"overlays":[]}));
     let multiline = engine.until("textResultBatch");
     assert_eq!(multiline["results"][0]["line"], 2);
     assert_eq!(multiline["results"][0]["endLine"], 4);
     assert_eq!(engine.until("textSearchComplete")["resultCount"], 1);
 
-    engine.send(json!({"type":"textSearch","version":1,"requestId":"unicode-range","query":"target","options":{"encoding":null,"regex":false,"caseSensitive":true,"smartCase":false,"wholeWord":false,"multiline":false,"includes":["src/**"],"excludes":[],"useExcludes":true,"maxResults":20},"overlays":[]}));
+    engine.send(json!({"type":"textSearch","version":1,"requestId":"unicode-range","query":"target","options":{"encoding":null,"regex":false,"caseSensitive":true,"smartCase":false,"wholeWord":false,"multiline":false,"includes":["src/**"],"excludes":[],"maxResults":20},"overlays":[]}));
     let unicode = engine.until("textResultBatch");
     assert_eq!(unicode["results"][0]["line"], 6);
     assert_eq!(unicode["results"][0]["startColumn"], 8);
     assert_eq!(unicode["results"][0]["endColumn"], 14);
     assert_eq!(engine.until("textSearchComplete")["resultCount"], 1);
 
-    engine.send(json!({"type":"textSearch","version":1,"requestId":"limit","query":"hello search","options":{"encoding":null,"regex":false,"caseSensitive":false,"smartCase":false,"wholeWord":false,"multiline":false,"includes":[],"excludes":[],"useExcludes":true,"maxResults":1},"overlays":[]}));
+    engine.send(json!({"type":"textSearch","version":1,"requestId":"limit","query":"hello search","options":{"encoding":null,"regex":false,"caseSensitive":false,"smartCase":false,"wholeWord":false,"multiline":false,"includes":[],"excludes":[],"maxResults":1},"overlays":[]}));
     assert_eq!(
         engine.until("textResultBatch")["results"]
             .as_array()
@@ -204,20 +208,16 @@ fn indexes_searches_refreshes_overlays_and_validates_protocol() {
     assert_eq!(limited["resultCount"], 1);
     assert_eq!(limited["limitHit"], true);
 
-    engine.send(json!({"type":"textSearch","version":1,"requestId":"untitled","query":"only in an untitled editor","options":{"encoding":null,"regex":false,"caseSensitive":false,"smartCase":true,"wholeWord":false,"multiline":false,"includes":[],"excludes":[],"useExcludes":true,"maxResults":20},"overlays":[{"uri":"untitled:Untitled-1","text":"only in an untitled editor\n","untitled":true}]}));
+    engine.send(json!({"type":"textSearch","version":1,"requestId":"untitled","query":"only in an untitled editor","options":{"encoding":null,"regex":false,"caseSensitive":false,"smartCase":true,"wholeWord":false,"multiline":false,"includes":[],"excludes":[],"maxResults":20},"overlays":[{"uri":"untitled:Untitled-1","text":"only in an untitled editor\n","untitled":true}]}));
     let untitled = engine.until("textResultBatch");
     assert_eq!(untitled["results"][0]["uri"], "untitled:Untitled-1");
     assert_eq!(untitled["results"][0]["rootId"], "untitled");
     assert_eq!(engine.until("textSearchComplete")["resultCount"], 1);
 
-    engine.send(json!({"type":"textSearch","version":1,"requestId":"ignored","query":"secret phrase","options":{"encoding":null,"regex":false,"caseSensitive":false,"smartCase":true,"wholeWord":false,"multiline":false,"includes":[],"excludes":[],"useExcludes":false,"maxResults":20},"overlays":[]}));
-    assert_eq!(
-        engine.until("textResultBatch")["results"][0]["preview"],
-        "secret phrase"
-    );
-    assert_eq!(engine.until("textSearchComplete")["resultCount"], 1);
+    engine.send(json!({"type":"textSearch","version":1,"requestId":"ignored","query":"secret phrase","options":{"encoding":null,"regex":false,"caseSensitive":false,"smartCase":true,"wholeWord":false,"multiline":false,"includes":[],"excludes":[],"maxResults":20},"overlays":[]}));
+    assert_eq!(engine.until("textSearchComplete")["resultCount"], 0);
 
-    engine.send(json!({"type":"textSearch","version":1,"requestId":"encoding","query":"café needle","options":{"encoding":"windows-1252","regex":false,"caseSensitive":false,"smartCase":true,"wholeWord":false,"multiline":false,"includes":[],"excludes":[],"useExcludes":true,"maxResults":20},"overlays":[]}));
+    engine.send(json!({"type":"textSearch","version":1,"requestId":"encoding","query":"café needle","options":{"encoding":"windows-1252","regex":false,"caseSensitive":false,"smartCase":true,"wholeWord":false,"multiline":false,"includes":[],"excludes":[],"maxResults":20},"overlays":[]}));
     assert_eq!(
         engine.until("textResultBatch")["results"][0]["preview"],
         "café needle"
@@ -258,16 +258,174 @@ fn publishes_searchable_partial_snapshots_during_initial_indexing() {
     );
     assert_eq!(engine.until("indexReady")["fileCount"], 4_001);
 
-    engine.send(json!({"type":"textSearch","version":1,"requestId":"survives-stale-cancel","query":"generated","options":{"encoding":null,"regex":false,"caseSensitive":false,"smartCase":true,"wholeWord":false,"multiline":false,"includes":[],"excludes":[],"useExcludes":true,"maxResults":4_000},"overlays":[]}));
+    engine.send(json!({"type":"textSearch","version":1,"requestId":"survives-stale-cancel","query":"generated","options":{"encoding":null,"regex":false,"caseSensitive":false,"smartCase":true,"wholeWord":false,"multiline":false,"includes":[],"excludes":[],"maxResults":4_000},"overlays":[]}));
     engine.send(json!({"type":"cancel","version":1,"requestId":"stale-cancel","targetRequestId":"an-old-request"}));
     let complete = engine.until("textSearchComplete");
     assert_eq!(complete["requestId"], "survives-stale-cancel");
     assert_eq!(complete["cancelled"], false);
     assert_eq!(complete["resultCount"], 4_000);
 
-    engine.send(json!({"type":"textSearch","version":1,"requestId":"cancel-me","query":"absent value","options":{"encoding":null,"regex":false,"caseSensitive":false,"smartCase":true,"wholeWord":false,"multiline":false,"includes":[],"excludes":[],"useExcludes":true,"maxResults":4_000},"overlays":[]}));
+    engine.send(json!({"type":"textSearch","version":1,"requestId":"cancel-me","query":"absent value","options":{"encoding":null,"regex":false,"caseSensitive":false,"smartCase":true,"wholeWord":false,"multiline":false,"includes":[],"excludes":[],"maxResults":4_000},"overlays":[]}));
     engine.send(json!({"type":"cancel","version":1,"requestId":"real-cancel","targetRequestId":"cancel-me"}));
     let cancelled = engine.until("textSearchComplete");
     assert_eq!(cancelled["requestId"], "cancel-me");
     assert_eq!(cancelled["cancelled"], true);
+}
+
+fn assert_search_paths(engine: &mut Engine, configuration: Value, roots: Value, expected: &[&str]) {
+    engine.send(json!({"type":"reconfigure", "version":1, "requestId":"settings", "roots":roots, "configuration":configuration}));
+    engine.until("indexReady");
+    engine.send(json!({"type":"fileSearch", "version":1, "requestId":"paths", "query":"", "maxResults":100}));
+    let response = engine.until("fileResults");
+    let mut paths: Vec<_> = response["results"]
+        .as_array()
+        .expect("file matches")
+        .iter()
+        .map(|value| value["relativePath"].as_str().expect("relative path"))
+        .collect();
+    paths.sort_unstable();
+    assert_eq!(paths, expected);
+    engine.send(json!({"type":"textSearch", "version":1, "requestId":"content", "query":"fixture phrase", "options":{"maxResults":100}, "overlays":[]}));
+    assert_eq!(
+        engine.until("textSearchComplete")["resultCount"],
+        expected.len()
+    );
+}
+
+#[test]
+fn applies_folder_and_sibling_exclusions_to_file_and_text_search() {
+    let root = TempDir::new().expect("root");
+    fs::create_dir_all(root.path().join("generated/nested")).expect("generated directory");
+    fs::create_dir(root.path().join("src")).expect("source directory");
+    for name in [
+        "generated/nested/data.txt",
+        "src/app.js",
+        "src/app.ts",
+        "src/standalone.js",
+        "visible.txt",
+    ] {
+        fs::write(root.path().join(name), "fixture phrase").expect("fixture");
+    }
+    let roots = json!([{"id":"one", "path":root.path()}]);
+    let mut engine = Engine::start();
+    assert_search_paths(
+        &mut engine,
+        json!({"rootExcludes":{"one":["generated", {"pattern":"**/*.js", "when":"$(basename).ts"}]}}),
+        roots.clone(),
+        &["src/app.ts", "src/standalone.js", "visible.txt"],
+    );
+    assert_search_paths(
+        &mut engine,
+        json!({"rootExcludes":{"one":["generated", {"pattern":"src/*.js", "when":"../src/$(basename).ts"}]}}),
+        roots.clone(),
+        &[
+            "src/app.js",
+            "src/app.ts",
+            "src/standalone.js",
+            "visible.txt",
+        ],
+    );
+    fs::remove_file(root.path().join("src/app.ts")).expect("remove sibling");
+    assert_search_paths(
+        &mut engine,
+        json!({"rootExcludes":{"one":["generated", {"pattern":"**/*.js", "when":"$(basename).ts"}]}}),
+        roots,
+        &["src/app.js", "src/standalone.js", "visible.txt"],
+    );
+}
+
+#[test]
+fn scopes_exclusions_and_ignore_flags_to_each_workspace_root() {
+    let one = TempDir::new().expect("first root");
+    let two = TempDir::new().expect("second root");
+    fs::write(one.path().join("scoped.txt"), "fixture phrase").expect("first scoped");
+    fs::write(two.path().join("scoped.txt"), "fixture phrase").expect("second scoped");
+    fs::write(one.path().join(".gitignore"), "local.txt\n").expect("first ignore");
+    fs::write(two.path().join(".gitignore"), "local.txt\n").expect("second ignore");
+    fs::write(one.path().join("local.txt"), "fixture phrase").expect("first local");
+    fs::write(two.path().join("local.txt"), "fixture phrase").expect("second local");
+    let roots = json!([{"id":"one", "path":one.path()}, {"id":"two", "path":two.path()}]);
+    let configuration = json!({"rootExcludes":{"one":["scoped.txt"], "two":[".gitignore"]}, "useIgnoreFilesByRoot":{"one":true, "two":false}, "excludes":[".gitignore"]});
+    let mut engine = Engine::start();
+    assert_search_paths(
+        &mut engine,
+        configuration,
+        roots,
+        &["local.txt", "scoped.txt"],
+    );
+}
+
+#[test]
+fn controls_local_global_and_parent_ignore_files_independently() {
+    let parent = TempDir::new().expect("parent");
+    let config = TempDir::new().expect("git configuration");
+    let root = parent.path().join("workspace");
+    fs::create_dir(&root).expect("workspace");
+    fs::write(parent.path().join(".gitignore"), "parent.txt\n").expect("parent ignore");
+    fs::write(root.join(".gitignore"), "local.txt\n").expect("local ignore");
+    for name in ["parent.txt", "global.txt", "local.txt", "visible.txt"] {
+        fs::write(root.join(name), "fixture phrase").expect("fixture");
+    }
+    let global_ignore = config.path().join("ignore");
+    let global_config = config.path().join("config");
+    fs::write(&global_ignore, "global.txt\n").expect("global ignore");
+    fs::write(
+        &global_config,
+        format!("[core]\nexcludesFile = {}\n", global_ignore.display()),
+    )
+    .expect("global configuration");
+    let mut engine = Engine::start_with_env(&[
+        ("GIT_CONFIG_GLOBAL", &global_config),
+        ("GIT_CONFIG_SYSTEM", &global_config),
+        ("XDG_CONFIG_HOME", config.path()),
+    ]);
+    let roots = json!([{"id":"one", "path":root}]);
+    assert_search_paths(
+        &mut engine,
+        json!({"excludes":[".gitignore"]}),
+        roots.clone(),
+        &["global.txt", "parent.txt", "visible.txt"],
+    );
+    assert_search_paths(
+        &mut engine,
+        json!({"excludes":[".gitignore"], "useGlobalIgnoreFilesByRoot":{"one":true}}),
+        roots.clone(),
+        &["parent.txt", "visible.txt"],
+    );
+    assert_search_paths(
+        &mut engine,
+        json!({"excludes":[".gitignore"], "useParentIgnoreFilesByRoot":{"one":true}}),
+        roots.clone(),
+        &["global.txt", "visible.txt"],
+    );
+    assert_search_paths(
+        &mut engine,
+        json!({"excludes":[".gitignore"], "useGlobalIgnoreFiles":true, "useParentIgnoreFiles":true}),
+        roots.clone(),
+        &["visible.txt"],
+    );
+    assert_search_paths(
+        &mut engine,
+        json!({"excludes":[".gitignore"], "useIgnoreFilesByRoot":{"one":false}, "useGlobalIgnoreFiles":true, "useParentIgnoreFiles":true}),
+        roots,
+        &["global.txt", "local.txt", "parent.txt", "visible.txt"],
+    );
+}
+
+#[test]
+fn keeps_single_star_exclusions_within_a_path_segment() {
+    let root = TempDir::new().expect("root");
+    fs::create_dir_all(root.path().join("src/nested")).expect("source directory");
+    fs::create_dir(root.path().join("generated")).expect("generated directory");
+    fs::write(root.path().join("src/app.js"), "fixture phrase").expect("direct source");
+    fs::write(root.path().join("src/nested/app.js"), "fixture phrase").expect("nested source");
+    fs::write(root.path().join("generated/data.txt"), "fixture phrase").expect("generated source");
+    let roots = json!([{"id":"one", "path":root.path()}]);
+    let mut engine = Engine::start();
+    assert_search_paths(
+        &mut engine,
+        json!({"rootExcludes":{"one":["src/*.js", "generated/"]}}),
+        roots,
+        &["src/nested/app.js"],
+    );
 }

@@ -63,7 +63,6 @@ fn main() {
         multiline: false,
         includes: Vec::new(),
         excludes: Vec::new(),
-        use_excludes: true,
         max_results: 10_000,
     };
 

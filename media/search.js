@@ -144,8 +144,7 @@ form.addEventListener("keydown", (event) => {
   if (
     event.key === "Enter" &&
     !event.isComposing &&
-    event.target instanceof HTMLInputElement &&
-    event.target.type !== "checkbox"
+    event.target instanceof HTMLInputElement
   ) {
     event.preventDefault();
     form.requestSubmit();
@@ -158,13 +157,6 @@ form.addEventListener("submit", (event) => {
 document
   .querySelector("#cancel")
   .addEventListener("click", () => vscode.postMessage({ type: "cancel" }));
-document.querySelector("#useExcludes").addEventListener("change", (event) =>
-  vscode.postMessage({
-    type: "toggle",
-    field: "useExcludes",
-    value: event.target.checked,
-  }),
-);
 for (const button of document.querySelectorAll("[data-toggle]"))
   button.addEventListener("click", () => {
     const value = button.getAttribute("aria-pressed") !== "true";
@@ -185,7 +177,6 @@ window.addEventListener("message", ({ data }) => {
       "aria-pressed",
       String(Boolean(state.options[button.dataset.toggle])),
     );
-  document.querySelector("#useExcludes").checked = state.options.useExcludes;
   document.querySelector("#history").replaceChildren(
     ...data.history.map((value) => {
       const option = document.createElement("option");

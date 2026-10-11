@@ -6,6 +6,7 @@ license.workspace = true
 publish.workspace = true
 
 [dependencies]
+fast-search-protocol = { path = "../fast-search-protocol" }
 globset.workspace = true
 ignore.workspace = true
 percent-encoding.workspace = true

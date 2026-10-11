@@ -138,6 +138,7 @@ dependencies = [
 name = "fast-search-index"
 version = "0.1.0"
 dependencies = [
+ "fast-search-protocol",
  "globset",
  "ignore",
  "percent-encoding",

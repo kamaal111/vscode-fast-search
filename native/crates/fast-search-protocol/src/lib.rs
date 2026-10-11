@@ -10,17 +10,32 @@ pub struct WorkspaceRoot {
     pub path: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(untagged)]
+pub enum ExclusionRule {
+    Pattern(String),
+    Conditional { pattern: String, when: String },
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct SearchConfiguration {
     #[serde(default)]
     pub excludes: Vec<String>,
     #[serde(default)]
-    pub root_excludes: HashMap<String, Vec<String>>,
+    pub root_excludes: HashMap<String, Vec<ExclusionRule>>,
     #[serde(default = "default_true")]
     pub use_ignore_files: bool,
     #[serde(default)]
     pub use_ignore_files_by_root: HashMap<String, bool>,
+    #[serde(default)]
+    pub use_global_ignore_files: bool,
+    #[serde(default)]
+    pub use_global_ignore_files_by_root: HashMap<String, bool>,
+    #[serde(default)]
+    pub use_parent_ignore_files: bool,
+    #[serde(default)]
+    pub use_parent_ignore_files_by_root: HashMap<String, bool>,
     #[serde(default)]
     pub follow_symlinks: bool,
     #[serde(default)]
@@ -65,8 +80,6 @@ pub struct TextSearchOptions {
     pub includes: Vec<String>,
     #[serde(default)]
     pub excludes: Vec<String>,
-    #[serde(default = "default_true")]
-    pub use_excludes: bool,
     #[serde(default = "default_limit")]
     pub max_results: usize,
 }

@@ -26,7 +26,6 @@
   --vscode-button-secondaryHoverBackground: #3c3c3c;
   --vscode-focusBorder: #0078d4;
   --vscode-toolbar-hoverBackground: #5a5d5e50;
-  --vscode-checkbox-background: #313131;
   --vscode-list-hoverBackground: #2b2d2e;
   --vscode-list-focusBackground: #04395e;
   --vscode-list-focusForeground: #ffffff;
@@ -53,7 +52,6 @@
   --vscode-button-secondaryHoverBackground: #cccccc;
   --vscode-focusBorder: #0090f1;
   --vscode-toolbar-hoverBackground: #b8b8b850;
-  --vscode-checkbox-background: #ffffff;
   --vscode-list-hoverBackground: #e8e8e8;
   --vscode-list-focusBackground: #d6ebff;
   --vscode-list-focusForeground: #000000;
@@ -81,7 +79,6 @@
   --vscode-button-border: #ffffff;
   --vscode-focusBorder: #f38518;
   --vscode-toolbar-hoverBackground: #000000;
-  --vscode-checkbox-background: #000000;
   --vscode-list-hoverBackground: #000000;
   --vscode-list-focusBackground: #000000;
   --vscode-list-focusForeground: #ffffff;

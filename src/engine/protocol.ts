@@ -1,11 +1,16 @@
 export const protocolVersion = 1;
 
 export type WorkspaceRoot = { id: string; path: string };
+export type ExclusionRule = string | { pattern: string; when: string };
 export type SearchConfiguration = {
   excludes: string[];
-  rootExcludes: Record<string, string[]>;
+  rootExcludes: Record<string, ExclusionRule[]>;
   useIgnoreFiles: boolean;
   useIgnoreFilesByRoot: Record<string, boolean>;
+  useGlobalIgnoreFiles: boolean;
+  useGlobalIgnoreFilesByRoot: Record<string, boolean>;
+  useParentIgnoreFiles: boolean;
+  useParentIgnoreFilesByRoot: Record<string, boolean>;
   followSymlinks: boolean;
   followSymlinksByRoot: Record<string, boolean>;
 };
@@ -25,7 +30,6 @@ export type TextSearchOptions = {
   multiline: boolean;
   includes: string[];
   excludes: string[];
-  useExcludes: boolean;
   maxResults: number;
 };
 
