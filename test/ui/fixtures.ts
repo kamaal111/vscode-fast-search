@@ -52,6 +52,7 @@ export { expect };
 type RenderOptions = {
   count?: number;
   searching?: boolean;
+  elapsedMs?: number;
   error?: string;
   session?: number;
   firstLine?: number;
@@ -63,6 +64,7 @@ export async function renderState(
   {
     count = 2,
     searching = false,
+    elapsedMs,
     error,
     session = 1,
     firstLine = 1,
@@ -99,6 +101,7 @@ export async function renderState(
     include: "",
     exclude: "",
     searching,
+    elapsedMs,
     error,
     results: matches,
     warnings: [],

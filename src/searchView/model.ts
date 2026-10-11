@@ -12,6 +12,7 @@ export type SearchState = {
   exclude: string;
   options: Omit<TextSearchOptions, "includes" | "excludes" | "maxResults">;
   searching: boolean;
+  elapsedMs: number | undefined;
   results: TextMatch[];
   warnings: string[];
   error: string | undefined;
@@ -40,6 +41,7 @@ export class SearchModel {
     exclude: "",
     options: initialOptions,
     searching: false,
+    elapsedMs: undefined,
     results: [],
     warnings: [],
     error: undefined,
@@ -76,7 +78,11 @@ export class SearchModel {
     const generation = ++this.generation;
     this.dismissedMatches.clear();
     this.dismissedFiles.clear();
-    this.state = { ...this.state, session: this.state.session + 1 };
+    this.state = {
+      ...this.state,
+      session: this.state.session + 1,
+      elapsedMs: undefined,
+    };
     if (this.state.query.length === 0) {
       this.state = {
         ...this.state,
@@ -101,6 +107,7 @@ export class SearchModel {
         .map((part) => part.trim())
         .filter(Boolean);
     const encoding = this.config.encoding();
+    const startedAt = performance.now();
     this.active = this.config.engine.textSearch(
       this.state.query,
       {
@@ -134,6 +141,9 @@ export class SearchModel {
               ...this.state,
               searching: false,
               warnings: summary.warnings,
+              elapsedMs: summary.cancelled
+                ? undefined
+                : performance.now() - startedAt,
             };
             this.emit();
           }
@@ -144,6 +154,7 @@ export class SearchModel {
               ...this.state,
               searching: false,
               error: error.message,
+              elapsedMs: undefined,
             };
             this.emit();
           }
@@ -181,7 +192,7 @@ export class SearchModel {
     if (this.timer !== undefined) clearTimeout(this.timer);
     this.generation += 1;
     this.active?.cancel();
-    this.state = { ...this.state, searching: false };
+    this.state = { ...this.state, searching: false, elapsedMs: undefined };
     this.emit();
   }
   dispose(): void {

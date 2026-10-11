@@ -2,7 +2,8 @@ const vscode = acquireVsCodeApi();
 const query = document.querySelector("#query");
 const include = document.querySelector("#include");
 const exclude = document.querySelector("#exclude");
-const status = document.querySelector("#status");
+const statusSummary = document.querySelector("#status-summary");
+const searchDuration = document.querySelector("#search-duration");
 const results = document.querySelector("#results");
 const resultsScroll = document.querySelector("#results-scroll");
 const tooltip = document.querySelector("#control-tooltip");
@@ -202,11 +203,23 @@ window.addEventListener("message", ({ data }) => {
 
   const count = state.results.length;
   const files = data.groups.length;
-  status.textContent =
+  statusSummary.textContent =
     state.error ??
     data.indexStatus ??
     data.announcement ??
     `${state.searching ? "Searching… " : ""}${count} ${count === 1 ? "result" : "results"} in ${files} ${files === 1 ? "file" : "files"}${state.warnings.length ? ` · ${state.warnings.length} skipped` : ""}`;
+  const showDuration =
+    state.elapsedMs !== undefined &&
+    !state.searching &&
+    state.error === undefined &&
+    data.indexStatus === undefined &&
+    data.announcement === undefined;
+  searchDuration.hidden = !showDuration;
+  searchDuration.textContent = showDuration
+    ? state.elapsedMs < 1000
+      ? `${Math.round(state.elapsedMs)} ms`
+      : `${(state.elapsedMs / 1000).toFixed(2)} s`
+    : "";
   renderResults();
 });
 
