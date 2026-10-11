@@ -48,7 +48,7 @@ export function searchViewHtml({
   <span class="sr-only" id="cancel-help">Stop the current search.</span>
   <span class="sr-only" id="include-help">Search only files matching these comma-separated folders or glob patterns. A folder such as src includes its contents at any depth. Use ./src for a top-level folder in a single-root workspace, or ./backend/src for a folder in the named backend root in a multi-root workspace. Leave empty to search all included files.</span>
   <span class="sr-only" id="exclude-help">Skip files matching these comma-separated glob patterns.</span>
-  <div id="status" role="status" aria-live="polite"></div>
+  <div id="status" role="status" aria-live="polite"><span id="status-summary"></span> <span id="search-duration" hidden></span></div>
   <div id="results-scroll">
     <div id="results" role="tree" aria-label="Search results"></div>
     <div id="result-pagination"></div>

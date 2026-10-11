@@ -14,10 +14,25 @@ function element(selector: string): HTMLElement {
   return found;
 }
 
+type StateOverrides = Partial<TextMatch> & {
+  elapsedMs?: number;
+  searching?: boolean;
+  error?: string;
+  indexStatus?: string;
+  announcement?: string;
+};
+
 function sendState(
   count = 1,
   session = 1,
-  matchOverrides: Partial<TextMatch> = {},
+  {
+    elapsedMs,
+    searching = false,
+    error,
+    indexStatus,
+    announcement,
+    ...matchOverrides
+  }: StateOverrides = {},
 ): void {
   const matches = Array.from({ length: count }, (_, line) => ({
     id: `match-${line}`,
@@ -40,7 +55,9 @@ function sendState(
           query: "match",
           include: "",
           exclude: "",
-          searching: false,
+          searching,
+          elapsedMs,
+          error,
           results: matches,
           warnings: [],
           options: {
@@ -64,6 +81,8 @@ function sendState(
                 },
               ],
         history: [],
+        indexStatus,
+        announcement,
       },
     }),
   );
@@ -354,7 +373,7 @@ it("renders filename, relative directory, themed icon and the full match count",
   expect(element(".match-count").textContent).toBe("301");
   expect(element(".file-icon").classList.contains("file-icon-1")).toBe(true);
   expect(element(".result-heading").title).toBe("/workspace/src/example.ts");
-  expect(element("#status").textContent).toBe("301 results in 1 file");
+  expect(element("#status-summary").textContent).toBe("301 results in 1 file");
 });
 
 it("preserves collapse during batches and resets it for a new search session", () => {
@@ -424,4 +443,41 @@ it("keeps pagination bounded when the result set contains only file headings", (
   ).toHaveLength(1);
   expect(dom.window.document.querySelector(".show-more")).toBeNull();
   expect(element(".match-count").textContent).toBe("1000");
+});
+
+it.each([
+  [0, "0 ms"],
+  [42.4, "42 ms"],
+  [999, "999 ms"],
+  [1000, "1.00 s"],
+  [1240, "1.24 s"],
+])("shows a completed duration of %s as %s", (elapsedMs, expected) => {
+  sendState(1, 1, { elapsedMs });
+  expect(element("#status-summary").textContent).toBe("1 result in 1 file");
+  expect(element("#search-duration").textContent).toBe(expected);
+  expect(element("#search-duration").hidden).toBe(false);
+});
+
+it.each([
+  { searching: true },
+  { error: "Search failed" },
+  { indexStatus: "Indexing workspace…" },
+  { announcement: "100 files indexed" },
+])("hides completed duration when the status is %j", (override) => {
+  sendState(1, 1, { elapsedMs: 42 });
+  sendState(1, 1, { elapsedMs: 42, ...override });
+  expect(element("#search-duration").hidden).toBe(true);
+  expect(element("#search-duration").textContent).toBe("");
+});
+
+it("shows zero-result duration and clears it when the next search has none", () => {
+  sendState(0, 1, { elapsedMs: 42 });
+  expect(element("#status-summary").textContent).toBe("0 results in 0 files");
+  expect(element("#search-duration").textContent).toBe("42 ms");
+  sendState(0, 2, { searching: true });
+  expect(element("#status-summary").textContent).toBe(
+    "Searching… 0 results in 0 files",
+  );
+  expect(element("#search-duration").hidden).toBe(true);
+  expect(element("#search-duration").textContent).toBe("");
 });

@@ -110,6 +110,9 @@ input:focus-visible {
   background: var(--vscode-toolbar-hoverBackground);
 }
 #status {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
   flex-shrink: 0;
   color: var(
     --vscode-search-resultsInfoForeground,
@@ -117,6 +120,14 @@ input:focus-visible {
   );
   padding: 4px 20px 8px;
   overflow-wrap: anywhere;
+}
+#status-summary {
+  min-width: 0;
+}
+#search-duration {
+  flex-shrink: 0;
+  margin-left: auto;
+  white-space: nowrap;
 }
 #results-scroll {
   position: relative;

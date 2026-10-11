@@ -287,7 +287,7 @@ test("resizes the scrollable results below the full search section in a short si
 test("renders a compact sidebar without horizontal overflow", async ({
   page,
 }) => {
-  await renderState(page);
+  await renderState(page, { elapsedMs: 42 });
   const layout = await page.evaluate(() => {
     const form = document.querySelector("form");
     const query = document.querySelector("#query");
@@ -527,7 +527,7 @@ test("renders empty, loading, and error states", async ({ page }) => {
 });
 
 test("has no automated WCAG accessibility violations", async ({ page }) => {
-  await renderState(page);
+  await renderState(page, { elapsedMs: 42 });
   const scan = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
     .analyze();
@@ -664,4 +664,39 @@ test("accepts plain folder filters and explains named-root selection", async ({
   await expect
     .poll(() => messages.at(-1))
     .toEqual({ type: "update", field: "include", value: "./backend/src" });
+});
+
+test("aligns the completed duration at the trailing edge of the results row", async ({
+  page,
+}) => {
+  await renderState(page, { count: 1000, fileCount: 4, elapsedMs: 1240 });
+  await expect(page.getByRole("status")).toHaveText(
+    "1000 results in 4 files 1.24 s",
+  );
+  const geometry = await page.evaluate(() => {
+    const summary = document.querySelector("#status-summary");
+    const duration = document.querySelector("#search-duration");
+    const status = document.querySelector("#status");
+    if (summary === null || duration === null || status === null)
+      throw new Error("Missing search summary");
+    return {
+      summary: summary.getBoundingClientRect().toJSON(),
+      duration: duration.getBoundingClientRect().toJSON(),
+      trailingEdge:
+        status.getBoundingClientRect().right -
+        parseFloat(getComputedStyle(status).paddingRight),
+      viewportWidth: window.innerWidth,
+      scrollWidth: document.documentElement.scrollWidth,
+    };
+  });
+  expect(geometry.duration.right).toBeCloseTo(geometry.trailingEdge);
+  expect(geometry.duration.top).toBeCloseTo(geometry.summary.top);
+  expect(geometry.summary.right).toBeLessThan(geometry.duration.left);
+  expect(geometry.scrollWidth).toBe(geometry.viewportWidth);
+  await renderState(page, { count: 0, elapsedMs: 0 });
+  await expect(page.getByRole("status")).toHaveText(
+    "0 results in 0 files 0 ms",
+  );
+  await renderState(page, { count: 0, searching: true, session: 2 });
+  await expect(page.locator("#search-duration")).toBeHidden();
 });
