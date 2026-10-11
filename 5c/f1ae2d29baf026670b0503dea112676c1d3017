@@ -1,0 +1,55 @@
+native/crates/fast-search-index/src/lib.rs
+  s_6197578391e192::t_fb8e0e589775dd 16-17,70,100,106-110,184,195-196,205,263-264
+  s_6197578391e192::t_f47d058b65084f 501-543
+src/engine/protocol.ts
+  s_6197578391e192::t_fb8e0e589775dd 3
+native/crates/fast-search-protocol/src/lib.rs
+  s_6197578391e192::t_fb8e0e589775dd 11-12
+src/configuration/configuration.ts
+  s_6197578391e192::t_fb8e0e589775dd 20-24
+src/searchView/html.ts
+  s_6197578391e192::t_20f2cedb5e24d0 40,49
+native/crates/fast-search-engine/tests/engine_protocol.rs
+  s_6197578391e192::t_20f2cedb5e24d0 460,475-476,478,533-534,536,543-546,548,552-555,557,565-566,569-674
+  s_6197578391e192::t_fb8e0e589775dd 481-532,537,539,542,550-551,559,561,564
+  s_6197578391e192::t_fbf33d182c16bb 443-459,461-474,477,479-480,535,538,540-541,547,549,556,558,560,562-563,567-568
+README.md
+  s_6197578391e192::t_20f2cedb5e24d0 25,64-78
+  s_6197578391e192::t_48040355abe769 79
+native/crates/fast-search-engine/src/main.rs
+  s_6197578391e192::t_fb8e0e589775dd 83
+docs/architecture.md
+  s_6197578391e192::t_20f2cedb5e24d0 9,23
+test/ui/search.spec.ts
+  s_6197578391e192::t_20f2cedb5e24d0 293,298-299,303-304,308
+  s_6197578391e192::t_a15255e1c9431e 294-297,300-302,305-307
+test/unit/configuration.test.ts
+  s_6197578391e192::t_20f2cedb5e24d0 73-78
+  s_6197578391e192::t_a15255e1c9431e 8-15
+  s_6197578391e192::t_7a0cc256c9b327 79
+native/crates/fast-search-core/src/lib.rs
+  s_6197578391e192::t_fb8e0e589775dd 12,323,379,428,484-504,508-554,556-577
+  s_6197578391e192::t_f47d058b65084f 712-857
+  s_6197578391e192::t_20f2cedb5e24d0 505-507
+  s_6197578391e192::t_200d32730a7692 555,578
+native/Cargo.lock
+  s_6197578391e192::t_cd6d79b8c91bfc 146
+native/crates/fast-search-index/Cargo.toml
+  s_6197578391e192::t_2cf1da7a2b8fc7 14-16
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5cf1ae2d29baf026670b0503dea112676c1d3017",
+  "prompts": {},
+  "sessions": {
+    "s_6197578391e192": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12c89-a3e9-7672-a49d-43d1ad974466",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Kamaal Farah <kamaal.f1@gmail.com>"
+    }
+  }
+}
