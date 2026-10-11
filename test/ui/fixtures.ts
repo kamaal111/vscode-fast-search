@@ -56,6 +56,7 @@ type RenderOptions = {
   session?: number;
   firstLine?: number;
   indent?: string;
+  history?: { query: string[]; include: string[]; exclude: string[] };
   fileCount?: number;
 };
 export async function renderState(
@@ -67,6 +68,7 @@ export async function renderState(
     session = 1,
     firstLine = 1,
     indent = "",
+    history = { query: [], include: [], exclude: [] },
     fileCount = 1,
   }: RenderOptions = {},
 ): Promise<void> {
@@ -146,7 +148,7 @@ export async function renderState(
           })),
         };
       }),
-      history: [],
+      history,
     },
   );
 }

@@ -10,6 +10,13 @@ type ProviderOptions = {
   engine: EngineClient;
   workspaceState: vscode.Memento;
 };
+const historyKeys = {
+  query: "fastSearch.history",
+  include: "fastSearch.includeHistory",
+  exclude: "fastSearch.excludeHistory",
+};
+type SearchHistory = Record<keyof typeof historyKeys, string[]>;
+
 type WebviewMessage =
   | { type: "update"; field: "query" | "include" | "exclude"; value: string }
   | {
@@ -40,7 +47,14 @@ export class SearchViewProvider
   private readonly icons: IconTheme;
   private readonly subscriptions: vscode.Disposable[] = [];
   private lastIconCss: string | undefined;
+  private readonly history: SearchHistory;
+  private historyWrites = Promise.resolve();
   constructor(private readonly options: ProviderOptions) {
+    this.history = {
+      query: this.loadHistory("query"),
+      include: this.loadHistory("include"),
+      exclude: this.loadHistory("exclude"),
+    };
     this.icons = new IconTheme({
       webview: () => this.view?.webview,
       changed: () => this.refreshTheme(),
@@ -63,6 +77,7 @@ export class SearchViewProvider
           .get<string>("encoding");
       },
       onChange: (state) => this.renderState(state),
+      onSearch: (fields) => this.remember(fields),
     });
     this.subscriptions.push(
       vscode.workspace.onDidChangeConfiguration((event) => {
@@ -128,10 +143,8 @@ export class SearchViewProvider
       this.model.update({ [message.field]: message.value });
     else if (message.type === "toggle")
       this.model.update({ options: { [message.field]: message.value } });
-    else if (message.type === "search") {
-      this.remember(this.model.current().query);
-      this.model.search();
-    } else if (message.type === "cancel") this.model.cancel();
+    else if (message.type === "search") this.model.search();
+    else if (message.type === "cancel") this.model.cancel();
     else if (message.type === "dismissMatch")
       this.model.dismissMatch(message.session, message.id);
     else if (message.type === "dismissFile")
@@ -182,16 +195,34 @@ export class SearchViewProvider
         untitled: document.isUntitled,
       }));
   }
-  private remember(query: string): void {
-    if (query.length === 0) return;
-    const prior = this.options.workspaceState.get<string[]>(
-      "fastSearch.history",
-      [],
-    );
-    void this.options.workspaceState.update(
-      "fastSearch.history",
-      [query, ...prior.filter((item) => item !== query)].slice(0, 20),
-    );
+  private loadHistory(field: keyof SearchHistory): string[] {
+    const value = this.options.workspaceState.get<unknown>(historyKeys[field]);
+    if (!Array.isArray(value)) return [];
+    return [
+      ...new Set(
+        value.filter(
+          (item): item is string => typeof item === "string" && item.length > 0,
+        ),
+      ),
+    ].slice(0, 20);
+  }
+  private remember(fields: Pick<SearchState, keyof SearchHistory>): void {
+    for (const field of ["query", "include", "exclude"] as const) {
+      const value = fields[field];
+      if (value.length === 0 || this.history[field][0] === value) continue;
+      const entries = [
+        value,
+        ...this.history[field].filter((item) => item !== value),
+      ].slice(0, 20);
+      this.history[field] = entries;
+      this.historyWrites = this.historyWrites
+        .then(() =>
+          this.options.workspaceState.update(historyKeys[field], entries),
+        )
+        .catch((error: unknown) => {
+          console.error("Fast Search: failed to persist search history", error);
+        });
+    }
   }
   private renderState(state: SearchState, announcement?: string): void {
     void this.view?.webview.postMessage({
@@ -201,10 +232,7 @@ export class SearchViewProvider
       showLineNumbers: vscode.workspace
         .getConfiguration("search")
         .get("showLineNumbers", false),
-      history: this.options.workspaceState.get<string[]>(
-        "fastSearch.history",
-        [],
-      ),
+      history: { ...this.history },
       indexStatus: this.indexStatus,
       announcement,
     });

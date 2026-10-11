@@ -18,6 +18,11 @@ function sendState(
   count = 1,
   session = 1,
   matchOverrides: Partial<TextMatch> = {},
+  history = {
+    query: ["beta", "alpha"],
+    include: ["src", "docs"],
+    exclude: ["dist", "vendor"],
+  },
 ): void {
   const matches = Array.from({ length: count }, (_, line) => ({
     id: `match-${line}`,
@@ -63,7 +68,7 @@ function sendState(
                   matches,
                 },
               ],
-        history: [],
+        history,
       },
     }),
   );
@@ -424,4 +429,113 @@ it("keeps pagination bounded when the result set contains only file headings", (
   ).toHaveLength(1);
   expect(dom.window.document.querySelector(".show-more")).toBeNull();
   expect(element(".match-count").textContent).toBe("1000");
+});
+
+function input(field: string): HTMLInputElement {
+  const found = element(`#${field}`);
+  if (!(found instanceof dom.window.HTMLInputElement))
+    throw new Error(`Missing input: ${field}`);
+  return found;
+}
+
+function arrow(
+  field: string,
+  key: string,
+  options: KeyboardEventInit = {},
+): KeyboardEvent {
+  const event = new dom.window.KeyboardEvent("keydown", {
+    key,
+    bubbles: true,
+    cancelable: true,
+    ...options,
+  });
+  input(field).dispatchEvent(event);
+  return event;
+}
+
+it.each([
+  ["query", "beta", "alpha"],
+  ["include", "src", "docs"],
+  ["exclude", "dist", "vendor"],
+])(
+  "navigates %s history backwards and forwards to an empty field",
+  (field, newest, oldest) => {
+    sendState();
+    const control = input(field);
+    control.focus();
+    control.value = "";
+    expect(arrow(field, "ArrowUp").defaultPrevented).toBe(true);
+    expect(control.value).toBe(newest);
+    expect(control.selectionStart).toBe(newest.length);
+    expect(postMessage).toHaveBeenLastCalledWith({
+      type: "update",
+      field,
+      value: newest,
+    });
+    arrow(field, "ArrowUp");
+    expect(control.value).toBe(oldest);
+    postMessage.mockClear();
+    arrow(field, "ArrowUp");
+    expect(control.value).toBe(oldest);
+    expect(postMessage).not.toHaveBeenCalled();
+    arrow(field, "ArrowDown");
+    expect(control.value).toBe(newest);
+    arrow(field, "ArrowDown");
+    expect(control.value).toBe("");
+    expect(element("#history-announcement").textContent).toBe("Cleared input");
+    expect(dom.window.document.activeElement).toBe(control);
+  },
+);
+
+it("skips the displayed newest term and keeps its cursor across reordered history messages", () => {
+  sendState();
+  const control = input("query");
+  control.focus();
+  control.value = "beta";
+  arrow("query", "ArrowUp");
+  expect(control.value).toBe("alpha");
+  sendState(1, 2, {}, { query: ["alpha", "beta"], include: [], exclude: [] });
+  arrow("query", "ArrowDown");
+  expect(control.value).toBe("beta");
+  arrow("query", "ArrowDown");
+  expect(control.value).toBe("");
+});
+
+it("resets navigation after editing or leaving a field and keeps field histories independent", () => {
+  sendState();
+  input("query").focus();
+  arrow("query", "ArrowUp");
+  input("query").value = "draft";
+  input("query").dispatchEvent(new dom.window.Event("input"));
+  arrow("query", "ArrowUp");
+  expect(input("query").value).toBe("beta");
+  input("include").focus();
+  arrow("include", "ArrowUp");
+  expect(input("include").value).toBe("src");
+  input("query").focus();
+  arrow("query", "ArrowDown");
+  expect(input("query").value).toBe("");
+});
+
+it.each([
+  { altKey: true },
+  { ctrlKey: true },
+  { metaKey: true },
+  { shiftKey: true },
+  { isComposing: true },
+])("leaves modified and composing arrow events alone: %j", (options) => {
+  sendState();
+  input("query").focus();
+  expect(arrow("query", "ArrowUp", options).defaultPrevented).toBe(false);
+  expect(input("query").value).toBe("match");
+  expect(postMessage).not.toHaveBeenCalled();
+});
+
+it("leaves empty history unchanged", () => {
+  sendState(0, 1, {}, { query: [], include: [], exclude: [] });
+  input("query").focus();
+  arrow("query", "ArrowUp");
+  arrow("query", "ArrowDown");
+  expect(input("query").value).toBe("match");
+  expect(postMessage).not.toHaveBeenCalled();
 });

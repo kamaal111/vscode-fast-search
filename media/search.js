@@ -135,14 +135,61 @@ let session;
 let latestData;
 const collapsed = new Set();
 const pagination = document.querySelector("#result-pagination");
+function registerHistory(element, field) {
+  let snapshot;
+  let cursor;
+  const reset = () => {
+    snapshot = undefined;
+    cursor = undefined;
+  };
+  element.addEventListener("blur", reset);
+  element.addEventListener("input", () => {
+    reset();
+    vscode.postMessage({ type: "update", field, value: element.value });
+  });
+  element.addEventListener("keydown", (event) => {
+    if (
+      (event.key !== "ArrowUp" && event.key !== "ArrowDown") ||
+      event.isComposing ||
+      event.altKey ||
+      event.ctrlKey ||
+      event.metaKey ||
+      event.shiftKey
+    )
+      return;
+    const history = latestData?.history[field] ?? [];
+    if (snapshot === undefined) {
+      if (history.length === 0) return;
+      snapshot = [...history];
+      cursor = -1;
+    }
+    event.preventDefault();
+    let value;
+    if (event.key === "ArrowUp") {
+      let next = Math.min(cursor + 1, snapshot.length - 1);
+      if (snapshot[next] === element.value && next < snapshot.length - 1)
+        next += 1;
+      cursor = next;
+      value = snapshot[cursor];
+    } else {
+      cursor = Math.max(cursor - 1, -1);
+      value = cursor < 0 ? "" : snapshot[cursor];
+    }
+    if (value === element.value) return;
+    element.value = value;
+    element.setSelectionRange(value.length, value.length);
+    document.querySelector("#history-announcement").textContent =
+      value || "Cleared input";
+    hideHelp();
+    vscode.postMessage({ type: "update", field, value });
+  });
+}
 for (const [element, field] of [
   [query, "query"],
   [include, "include"],
   [exclude, "exclude"],
 ])
-  element.addEventListener("input", () =>
-    vscode.postMessage({ type: "update", field, value: element.value }),
-  );
+  registerHistory(element, field);
 const form = document.querySelector("#search-form");
 form.addEventListener("keydown", (event) => {
   if (
@@ -185,13 +232,6 @@ window.addEventListener("message", ({ data }) => {
       "aria-pressed",
       String(Boolean(state.options[button.dataset.toggle])),
     );
-  document.querySelector("#history").replaceChildren(
-    ...data.history.map((value) => {
-      const option = document.createElement("option");
-      option.value = value;
-      return option;
-    }),
-  );
   latestData = data;
   if (session !== state.session) {
     session = state.session;
